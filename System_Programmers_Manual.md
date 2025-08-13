@@ -2,7 +2,7 @@
 
 This is a Markdown version of the Cogar C4/Singer 1501/ICL 1501 System Programmers Manual (1972)
 
-Please enter an defect from the original as a github issue.
+Please enter any defect from the original as a github issue.
 
 # TODO
 
