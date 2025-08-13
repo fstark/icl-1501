@@ -90,7 +90,7 @@ pretation, and provides automatic threading of recursive subroutines.
 The nature of the processor design and its relationship to the other 
 system components make the Cogar 4 heavily dependent on software. This 
 means that the system is uniquely flexible in the jobs it can perform and 
-is especially adaptable for various operator and interfact applications. 
+is especially adaptable for various operator and interface applications. 
 It also means that software is an essential ingredient that must be as 
 fully and carefully integrated into the System as the other components. 
 
@@ -113,7 +113,7 @@ Programs are written and assembled in symbolic notation, with the
 final stage of the assembly effecting a merge of the specialized 
 routines and the pre-packaged background functions. This method of 
 assembly allows easy and rapid modification or correction of programs 
-or the re-configuration of a program to accomodate different peripheral 
+or the re-configuration of a program to accommodate different peripheral 
 devices or the selection of a new or modified graphic set, or key­
 board configuration. 
 
@@ -124,7 +124,7 @@ bytes long and must occur on even byte boundaries. DPL-2 commands are
 four bytes long and should also occur on even boundaries. When DPL-1 and 
 DPL-2 are intermixed, a new language is formed called DPL-3. The batch 
 assembler for DPL-3 is known as DPL-3B. A subset of the DPL-2 monitor 
-that handl es I/O functi on is known as the I/O Supervi sor or IOS. This 
+that handles I/O function is known as the I/O Supervisor or IOS. This 
 manual describes DPL-1 and IOS as assembled on DPL-3B. 
 
 In order to be able to tailor the system for optimum use with particular 
@@ -530,8 +530,8 @@ address after a load processor status operation (See "LPS" instruction).
 
 ## 2. REGISTERS
 
-The Cogar 4 contains one general purpose accumulator that IS eight bits 
-(one byte) long. Almost all of the nonbranch DPL-l instructions refer 
+The Cogar 4 contains one general purpose accumulator that is eight bits 
+(one byte) long. Almost all of the nonbranch DPL-1 instructions refer 
 to the accumulator. It is the major center for processor activity 
 and the primary pipeline for data flow to and from the memory and the 
 peripheral devices. 
@@ -539,7 +539,7 @@ peripheral devices.
 The Cogar 4 contains seven one-byte index registers for each memory 
 section available. They are often used as address displacements in 
 indexed addressing, but may also be used as general purpose registers. 
-A few of the DPL-l instructions act directly on the index registers, 
+A few of the DPL-1 instructions act directly on the index registers, 
 but there is much more flexibility than those instructions imply because 
 the registers are located in memory. They may thus be addressed by all 
 memory reference instructions. The accumulator can retrieve, manipulate 
@@ -547,12 +547,12 @@ and restore the contents of any index register.
 
 The hardware condition register contains the results of Test and Compare 
 instructions. It may be set to High, Equal or Low and retains its status 
-until a new Test or Compare is executed. The operation of DPL-l con­ditional 
-Branch instructions depends on the status of the hardware con­dition register. 
+until a new Test or Compare is executed. The operation of DPL-1 con­ditional
+Branch instructions depends on the status of the hardware con­dition register.
 
 ## 3. ADDRESSING
 
-The Cogar 4 contains 4K, 8K or 16K bytes of memory, with an lAW 16 bits 
+The Cogar 4 contains 4K, 8K or 16K bytes of memory, with an IAW 16 bits 
 long. Indirect addressing may operate anywhere within this range. The 
 total memory capacity is divided into eight Sections of 2048 bytes each. 
 requiring 11 bits to fully address. Branch operations (if not preceded by 
@@ -582,7 +582,7 @@ location within the page.
 
 All instructions are retrieved from memory using the current Instruction 
 Address Word, and all instruction addressing involves modification of the 
-lAW. 
+IAW. 
 
 For sequential execution of instructions, one of the sixteen IAW's within 
 the Stack is incremented by two during each instruction cycle. Instruc­
@@ -591,11 +591,11 @@ boundaries. It is important to note that when instructions cross a
 Section boundary, the branch functions, if executed, will transfer con­
 trol to the Section that was previously set. Other functions are not 
 affected. A "Set Memory Section" instruction is used to change the 
-section context of the lAW for branch instructions. 
+section context of the IAW for branch instructions. 
 
 A jump to a new instruction location uses relative instruction addressing 
 by adding or subtracting up to 15 instruction locations to or from the 
-current lAW. A Jump may be across a Section Boundary. 
+current IAW. A Jump may be across a Section Boundary. 
 
 ### ADDRESS NOTATIONS
 
@@ -646,7 +646,7 @@ When an underflow occurs (**D#X**), the result is the two's complement of the un
 Program elements, such as instructions or constants, may be referenced 
 in an instruction by specifying the absolute address of the element. The 
 form for this type of reference is Pnn, LLL. Pnn specifies the page in 
-2 digit decimal notation from 00 to 63 andLLL specifies the location 
+2 digit decimal notation from 00 to 63 and LLL specifies the location 
 within the page in 3 digit decimal notation from 000 to 255. 
 
 It is often more convenient to refer to program elements symbolically. 
@@ -655,11 +655,11 @@ represent a program element. Symbols are defined through their use in
 the label field of an instruction or through the EQU pseudo instruction. 
 A Symbol may be used only once in a label field within one program. When 
 a symbol is used as an instruction operand, it must be defined somewhere 
-in the program. A symbol must be comprised of three non-blank aJpha­
+in the program. A symbol must be comprised of three non-blank alpha­
 numeric characters with the first character non-numeric. If the first 
 character is "P", the following characters must be alphabetic. The 
 total number of symbols plus ORG statements plus page boundaries crossed 
-by sequential program operation is· limited to a maximum of 128. 
+by sequential program operation is limited to a maximum of 128. 
 
 Address adjustment may be used for convenience and to cut down on the 
 number of symbols defined. A signed numeric adjustment in decimal bytes 
@@ -679,7 +679,7 @@ mode, or eight-line interleaved mode. Several status checks are avail­
 able for the processor to interrogate. Most normal I/O operations will 
 use the I/O Supervisor, but special purpose routines may be constructed 
 from the IOC instructions and there are several operations, like key­
-board beep, that are not available from the lOS. 
+board beep, that are not available from the IOS. 
 
 ## 5. DPL-1 INSTRUCTION CLASSES
 
@@ -712,15 +712,15 @@ to equal, can be effected by using a test mask of zero.
 ### Class 1: Branch, Linkage-Control, and I/O Instructions: 
 
 Branch instructions transfer control outside a context to any section 
-address. Branch instructions replace the current lAW with a new instruc­
+address. Branch instructions replace the current IAW with a new instruc­
 tion address. Stack and Branch instructions introduce a new instruction 
-address in a new lAW and preserve the contents of the previous lAW for 
+address in a new IAW and preserve the contents of the previous IAW for 
 return linkage. Direct Branch instructions may be conditioned by pre­
 vious test or compare operations. The conditional instructions allow 
 powerful data-dependent decisions to be made. The Exit and the Exit and 
 Branch instructions are used to return from subroutines. They decrement 
 the stack pointer and thus change program control to the next previous 
-lAW. 
+IAW. 
 
 ### Class 2: Data Transfer and Arithmetic Instructions: 
 
@@ -786,14 +786,14 @@ Literals that are assigned a value by the DPL-3B Assembler use five
 forms of address constants in which AAA is a symbolic address. These 
 are: ADC:AAA, ADL:AAA, ADP:AAA, IDP:AAA, and DDP:AAA. These address 
 constants are used primarily to define the actual address of a 
-symbolic reference. When the literal form ADP, lOP, or DDP is used 
+symbolic reference. When the literal form ADP, IDP, or DDP is used 
 in conjunction with an R#0 or an R#X, instruction, the DPL page value 
 of AAA is assembled as the operand; either with no indexing tag, or 
 with incrementing or decrementing tag, respectively. If the form ADL 
 is used, the address location value within the page is assembled as 
 the operand. 
 
-When the literal form ADC is used in conjunction with an R#O 
+When the literal form ADC is used in conjunction with an R#0 
 instruction, the DPL page value, in increment form, is assembled as 
 the operand. If used in conjunction with an R#X instruction, the 
 symbolic address location within the page is assembled as the operand. 
@@ -805,10 +805,10 @@ symbolic address location within the page is assembled as the operand.
 The Standard Mini-Tape Record is comprised of an 8-byte label, generated 
 by the Mini-Write Software Function, followed by 128 bytes of data. The 
 8-byte label when read into (or written from) memory resides in Page 00, 
-locations 0308 thru 0378. The first byte of the Record Header contains 
+locations 030 thru 037. The first byte of the Record Header contains 
 a sequence number. The sequence number is automatically checked by 
 the Mini-Read Software Function to provide a method of automatically 
-bypassing any nCIG" (Character in Gap). This sequence number may also 
+bypassing any "CIG" (Character in Gap). This sequence number may also 
 be used to adjust search counters when utilizing the high-speed 
 capability to locate multiple records by continuation. Byte-2 contains 
 the control function. A value other than those specified below may be 
@@ -816,9 +816,9 @@ inserted by the user for specialized functions. Bytes 3 and 4 are not
 used by the Standard Mini-Read/Write, and can, therefore, contain any 
 value as established by the user. 
 
-Bytes 5 through a of a program record contain the Segment ID and the 
+Bytes 5 through 8 of a program record contain the Segment ID and the 
 Page Designator. Through usage of these bytes, an overlay record can 
-easily be located and loaded into memory. Bytes 5 through a are not 
+easily be located and loaded into memory. Bytes 5 through 8 are not 
 used in a data file. 
 
 ### Figure 4 : Standard Mini-Tape Record Layout. 
@@ -883,7 +883,7 @@ processing before the user must return to the I/O operation.
 
 
 
-For DPL-l instructions that use Immediate Addressing, the following 
+For DPL-1 instructions that use Immediate Addressing, the following 
 forms may be used in symbolic coding to specify the literal value: 
 
 (K)  
@@ -929,7 +929,7 @@ Instruction Reference Card, and fall in the following four categories:
 1. DPL-1 Instructions. These instructions perform all the data 
 manipulation and control tasks allowed by the hardware. 
 
-2. IDS Commands. These instructions provide access to the standard 
+2. IOS Commands. These instructions provide access to the standard 
 software I/O routines, using the I/O Supervisor. 
 
 3. Pseudo Instructions. These instructions provide programmer 
@@ -1129,7 +1129,7 @@ The content of the Condition Register is unpredictable after an unsuccessful Jum
 ```
 PPP-LLL:   MP1-MP2-MP3-MP4.   E SEQ. NO.   LAB:   VERB   OPERANDS     COMMENTS  
 P15-026:   040-010.            02-180.      TMX, 000; OCT:010.         EXIT IF  
-P14-030:   040-310.            02-190.      TMX, 000; DEC:200.         MASK IS  
+P15-030:   040-310.            02-190.      TMX, 000; DEC:200.         MASK IS  
 P15-032:   040-240.            02-200.      TMX, 000; HEX:A0.          EQUAL  
 ```
 
@@ -2588,7 +2588,7 @@ A Read operation is initiated at the I/O device, and the data is transferred fro
 When retrieving records from Maxi-Tape, the same number of bytes as contained in the tape record must be specified by the size operand within the instruction. The size may be up to 256 bytes for Maxi-Tape. Data is placed in memory in ascending order of addresses within the "Into" Page which is currently set, starting with the address specified in the instruction.  
 
 #### MINI-TAPE:
-When retrieving records from Mini-Tape, the physical record length **must** be 136 bytes. The standard Mini-Tape record is comprised of an 8-byte label, generated by the Mini-Write software function, followed by 128 bytes of data. Because the label is generated by the software and not by the user, it is not included in the record size operand. Therefore, when reading the standard Mini-Tape record, specify 128 (number of data bytes) as the size. Although a Mini-Tape record may contain a maximum of 128 bytes of data, it may be desirable to read a lesser number of characters into the input buffer. By specifying a lesser number in the size operand, only the number of characters specified will be stored into the I/O area indicated by the user. The remainder of the record will be read and used to check for tape errors and CRC Check but these characters will not be stored into the I/O Buffer. The 8-byte label is automatically read into Page 00 Locations 0308 thru 0370. The data portion of the record is placed in memory in ascending order of addresses within the "Into" Page which is currently set, starting with the address specified in the instruction. An automatic sequence check is made on the first byte of the label. If the record contains the wrong sequence number (i.e., a record was skipped), the error condition will be set.  
+When retrieving records from Mini-Tape, the physical record length **must** be 136 bytes. The standard Mini-Tape record is comprised of an 8-byte label, generated by the Mini-Write software function, followed by 128 bytes of data. Because the label is generated by the software and not by the user, it is not included in the record size operand. Therefore, when reading the standard Mini-Tape record, specify 128 (number of data bytes) as the size. Although a Mini-Tape record may contain a maximum of 128 bytes of data, it may be desirable to read a lesser number of characters into the input buffer. By specifying a lesser number in the size operand, only the number of characters specified will be stored into the I/O area indicated by the user. The remainder of the record will be read and used to check for tape errors and CRC Check but these characters will not be stored into the I/O Buffer. The 8-byte label is automatically read into Page 00 Locations 030 thru 037. The data portion of the record is placed in memory in ascending order of addresses within the "Into" Page which is currently set, starting with the address specified in the instruction. An automatic sequence check is made on the first byte of the label. If the record contains the wrong sequence number (i.e., a record was skipped), the error condition will be set.  
 
 #### KEYBOARD:
 When retrieving data from the keyboard, the same number of bytes as contained in the size operand must be entered. The keyboard Supervisor provides for corrections to be made to data entered. By depressing the "CORR" key on the keyboard, the point of entry will be backspaced one location within the current Page. The size operand may specify up to 256 bytes for the keyboard operation. Data is placed in memory in ascending order of addresses within the "Into" Page which is currently set, starting with the address specified in the instruction.  
