@@ -12,9 +12,21 @@ Check all examples formatting
 
 This section has been added to ease the comprenhension of the latter sections.
 
+## Memory addressing:
+
+The memory is divided in 8 sections of 8 pages of 256 bytes. A section is 2K, the total memory is 16K.
+
+When an assembly output says:
+
+"P15-050:", it means section 1, page 5, offset 50 octal (40 in decimal)
+
+All branch locations in assembly code are relative to the current section (use SMS to change sections)
+
+## Usage of octal in instruction encoding
+
 The documentation mixes octal and decimal in subtle ways.
 
-When an instruction pattern is described like: ``11X-XYX0`` it means:
+When an instruction pattern (BRH) is described like: ``11X-XYX0`` it means:
 
 The first ``1`` is octal
 The second ``1`` is octal
@@ -22,7 +34,10 @@ The first ``X`` is octal
 The ``XYX`` can be seen as octal
 The last ``0`` is binary
 
-The instr
+So the instruction pattern is ``01001xxx xyxyxyx0``
+
+The instruction ``115-062`` would be ``01 001 101 - 00 110 010``, and would be Branch High to ``101 0011 0010``, aka page 5, offset 100 decimal.
+
 
 
 # Section I. GENERAL
@@ -958,7 +973,7 @@ using these notations.
 ---
 ## 2. CLASS 0: JUMP
 
-### DPL-1              CLASS 0: JUMP              TEST LITERAL AND JUMP
+### DPL-1              CLASS 0: JUMP              TEST LITERAL AND JUMP -- TLJ
 
 |      OBJECT      |          SOURCE            |
 | ---------------- | -------------------------- |
@@ -1196,10 +1211,12 @@ execution of a branch function.
 PPP-LLL: MP1-MP2-MP3-MP4. E SEQ. NO. LAB: VERB  OPERANDS     COMMENTS  
 P15-034: 105-042.           03-030.       BRU;  IN1.         WITHIN A  
 P15-036: 105-036.           03-040.       BRU;  *+0.         SECTION  
-P15-040: 107-000.           03-050.       BRU,  P15; 000.  
+P15-040: 105-000.           03-050.       BRU,  P15; 000.  
 P15-042: 150-000.           03-060.  IN1: SMS;  S#0.         OUT OF A  
 P15-044: 106-144.           03-070.       BRU,  P06; 100.    SECTION  
 ```
+
+(note: instruction P15-040 corrected from source)
 
 ---
 

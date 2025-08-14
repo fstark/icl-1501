@@ -1,42 +1,109 @@
 #include "icl1501_disassembler.h"
 
 // Helper function to normalize whitespace for robust testing
-static std::string normalizeWhitespace(const std::string& str) {
+static std::string normalizeWhitespace(const std::string &str)
+{
     std::string result;
     bool in_space = false;
-    
-    for (char c : str) {
-        if (std::isspace(c)) {
-            if (!in_space) {
-                result += ' ';  // Replace any whitespace with single space
+
+    for (char c : str)
+    {
+        if (std::isspace(c))
+        {
+            if (!in_space)
+            {
+                result += ' '; // Replace any whitespace with single space
                 in_space = true;
             }
-        } else {
+        }
+        else
+        {
             result += c;
             in_space = false;
         }
     }
-    
+
     // Trim trailing space
-    if (!result.empty() && result.back() == ' ') {
+    if (!result.empty() && result.back() == ' ')
+    {
         result.pop_back();
     }
-    
+
     return result;
 }
 
-// Test harness implementation
-bool SimpleICL1501Disassembler::runTests() {
+// Helper function to parse octal pairs and starting address
+static std::pair<std::vector<uint8_t>, int> parseOctalPairs(std::string_view octal_pairs)
+{
+    std::vector<uint8_t> data;
+    int start_address = 0; // Default starting address
+
+    std::string input{octal_pairs};
+
+    // Check if input starts with Ppp-lll: format
+    size_t colon_pos = input.find(':');
+    if (colon_pos != std::string::npos && colon_pos > 0)
+    {
+        std::string addr_part = input.substr(0, colon_pos);
+        if (addr_part.length() >= 7 && addr_part[0] == 'P' && addr_part[3] == '-')
+        {
+            // Extract page and location
+            std::string page_str = addr_part.substr(1, 2);
+            std::string loc_str = addr_part.substr(4, 3);
+
+            int page = std::stoi(page_str, nullptr, 8);
+            int location = std::stoi(loc_str, nullptr, 8);
+
+            start_address = (page * 256) + location;
+
+            // Remove the address prefix from input
+            input = input.substr(colon_pos + 1);
+
+            // Trim leading whitespace
+            size_t start = input.find_first_not_of(" \t");
+            if (start != std::string::npos)
+            {
+                input = input.substr(start);
+            }
+        }
+    }
+
+    std::istringstream ss(input);
+    std::string pair;
+
+    while (ss >> pair)
+    {
+        size_t dash_pos = pair.find('-');
+        if (dash_pos != std::string::npos)
+        {
+            std::string octal1_str = pair.substr(0, dash_pos);
+            std::string octal2_str = pair.substr(dash_pos + 1);
+
+            uint8_t byte1 = static_cast<uint8_t>(std::stoi(octal1_str, nullptr, 8));
+            uint8_t byte2 = static_cast<uint8_t>(std::stoi(octal2_str, nullptr, 8));
+
+            data.push_back(byte1);
+            data.push_back(byte2);
+        }
+    }
+
+    return std::make_pair(data, start_address);
+}
+
+// Standalone test function
+bool runICL1501DisassemblerTests()
+{
     std::cout << "Running ICL-1501 Disassembler Test Suite" << std::endl;
     std::cout << "=====================================" << std::endl;
     std::cout << std::endl;
-    
-    struct TestCase {
+
+    struct TestCase
+    {
         std::string input;
         std::string expected_output;
         std::string description;
     };
-    
+
     // Test cases from the manual
     std::vector<TestCase> tests = {
         {"102-000", "P00-000: 102-000.              BRU,  P02; 000.", "Basic BRU to page 2"},
@@ -50,115 +117,74 @@ bool SimpleICL1501Disassembler::runTests() {
         {"112-100", "P00-000: 112-100.              BRH,  P02; 064.", "BRH to page 2, location 64"},
         {"110-001", "P00-000: 110-001.              BRL,  P00; 000.", "Basic BRL to page 0"},
         {"112-101", "P00-000: 112-101.              BRL,  P02; 064.", "BRL to page 2, location 64"},
+        // Section-relative addressing tests
+        {"P13-000: 115-062", "P13-000: 115-062.              BRH,  P15; 050.", "BRH from section 1 shows P15"},
+        {"P27-000: 112-100", "P27-000: 112-100.              BRH,  P22; 064.", "BRH from section 2 shows P22"},
+        {"P35-000: 110-001", "P35-000: 110-001.              BRL,  P30; 000.", "BRL from section 3 shows P30"},
     };
-    
+
     int passed = 0;
     int failed = 0;
-    
-    for (const auto& test : tests) {
+
+    for (const auto &test : tests)
+    {
         std::cout << "Testing: " << test.input << " - " << test.description << std::endl;
-        
-        // Save current data
-        std::vector<uint8_t> original_data = program_data;
-        
-        // Load test data (suppress output for cleaner test display)
-        std::cout.setstate(std::ios_base::failbit);
-        bool loaded = loadFromOctalPairs(test.input);
-        std::cout.clear();
-        
-        if (!loaded) {
-            std::cout << "  FAIL: Could not load test data" << std::endl;
+
+        // Parse input to get data and start address
+        auto [data, start_addr] = parseOctalPairs(test.input);
+
+        if (data.empty())
+        {
+            std::cout << "  FAIL: Could not parse test data" << std::endl;
             failed++;
-            program_data = original_data;
             continue;
         }
-        
-        // Capture output by redirecting to stringstream
-        std::ostringstream captured_output;
-        std::streambuf* old_cout = std::cout.rdbuf();
-        std::cout.rdbuf(captured_output.rdbuf());
-        
-        // Generate the instruction output (without header)
-        if (program_data.size() >= 2) {
-            uint8_t byte1 = program_data[0];
-            uint8_t byte2 = program_data[1];
-            uint8_t page = byte1 & 0x07;
-            uint8_t location = byte2 & 0xFE;  // 7-bit address field (LSB is opcode)
-            
-            ICL1501Formatter temp_formatter(captured_output);
-            
-            // Check if it's BRU, BRE, BRH, or BRL and print accordingly
-            if (isBRU(0)) {
-                printBRU(start_address, byte1, byte2, page, location, temp_formatter);
-            } else if (isBRE(0)) {
-                printBranch(start_address, byte1, byte2, page, location, "BRE,", "Branch on Equal to", temp_formatter);
-            } else if (isBRH(0)) {
-                printBranch(start_address, byte1, byte2, page, location, "BRH,", "Branch on High to", temp_formatter);
-            } else if (isBRL(0)) {
-                printBranch(start_address, byte1, byte2, page, location, "BRL,", "Branch on Low to", temp_formatter);
-            } else {
-                // Fallback - should not happen with our test data
-                printBRU(start_address, byte1, byte2, page, location, temp_formatter);
-            }
+
+        // Create disassembler and get output in terse mode (no headers)
+        SimpleICL1501Disassembler disassembler;
+        std::vector<std::string> output_lines = disassembler.disassemble(data, start_addr, false, true);
+
+        if (output_lines.empty())
+        {
+            std::cout << "  FAIL: No output produced" << std::endl;
+            failed++;
+            continue;
         }
-        
-        // Restore cout
-        std::cout.rdbuf(old_cout);
-        
-        // Get the captured line and remove trailing newline
-        std::string actual_output = captured_output.str();
-        if (!actual_output.empty() && actual_output.back() == '\n') {
-            actual_output.pop_back();
-        }
-        
-        // Remove any extra leading characters that might be from stream formatting
-        size_t start_pos = actual_output.find("P00-000:");
-        if (start_pos != std::string::npos) {
-            actual_output = actual_output.substr(start_pos);
-        }
-        
-        // Extract just the instruction part (before the comment)
-        size_t comment_pos = actual_output.find("Branch to");
-        if (comment_pos == std::string::npos) {
-            comment_pos = actual_output.find("Branch on Equal to");
-        }
-        if (comment_pos == std::string::npos) {
-            comment_pos = actual_output.find("Branch on High to");
-        }
-        if (comment_pos == std::string::npos) {
-            comment_pos = actual_output.find("Branch on Low to");
-        }
-        if (comment_pos != std::string::npos) {
-            actual_output = actual_output.substr(0, comment_pos);
-        }
-        
+
+        // In terse mode, first line should be the instruction
+        std::string actual_output = output_lines[0];
+
         // Normalize whitespace for robust comparison
         std::string normalized_actual = normalizeWhitespace(actual_output);
         std::string normalized_expected = normalizeWhitespace(test.expected_output);
-        
-        // Compare with expected output
-        if (normalized_actual == normalized_expected) {
+
+        // Check that expected output is a prefix of actual output (ignoring comments)
+        if (normalized_actual.length() >= normalized_expected.length() &&
+            normalized_actual.substr(0, normalized_expected.length()) == normalized_expected)
+        {
             std::cout << "  PASS: " << actual_output << std::endl;
             passed++;
-        } else {
+        }
+        else
+        {
             std::cout << "  FAIL: Expected: " << test.expected_output << std::endl;
             std::cout << "        Got:      " << actual_output << std::endl;
             std::cout << "        Normalized Expected: " << normalized_expected << std::endl;
             std::cout << "        Normalized Got:      " << normalized_actual << std::endl;
             failed++;
         }
-        
-        // Restore original data
-        program_data = original_data;
     }
-    
+
     std::cout << std::endl;
     std::cout << "Test Results: " << passed << " passed, " << failed << " failed" << std::endl;
-    
-    if (failed == 0) {
+
+    if (failed == 0)
+    {
         std::cout << "All tests passed! ✅" << std::endl;
         return true;
-    } else {
+    }
+    else
+    {
         std::cout << "Some tests failed! ❌" << std::endl;
         return false;
     }

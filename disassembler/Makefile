@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -std=c++11 -Wall -Wextra -O2
+CXXFLAGS = -std=c++20 -Wall -Wextra -O2
 TARGET = icl1501_disassembler
 SOURCES = icl1501_disassembler.cpp icl1501_disassembler_tests.cpp icl1501_formatter.cpp icl1501_symbols.cpp
 
