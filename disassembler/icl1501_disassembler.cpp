@@ -165,7 +165,8 @@ std::vector<std::string> SimpleICL1501Disassembler::disassemble(std::span<const 
         int offset = 0;
         while (offset < static_cast<int>(program_data.size()) - 1)
         {
-            if (isBRU(offset) || isBRE(offset) || isBRH(offset) || isBRL(offset))
+            if (isBRU(offset) || isBRE(offset) || isBRH(offset) || isBRL(offset) ||
+                isSBU(offset) || isSBE(offset) || isSBH(offset) || isSBL(offset))
             {
                 // Extract target address and create label
                 uint8_t byte1 = program_data[offset];
@@ -249,6 +250,26 @@ std::vector<std::string> SimpleICL1501Disassembler::disassemble(std::span<const 
         else if (decodeBRL(address, offset, formatter))
         {
             offset += 2; // BRL is 2 bytes
+            address += 2;
+        }
+        else if (decodeSBU(address, offset, formatter))
+        {
+            offset += 2; // SBU is 2 bytes
+            address += 2;
+        }
+        else if (decodeSBE(address, offset, formatter))
+        {
+            offset += 2; // SBE is 2 bytes
+            address += 2;
+        }
+        else if (decodeSBH(address, offset, formatter))
+        {
+            offset += 2; // SBH is 2 bytes
+            address += 2;
+        }
+        else if (decodeSBL(address, offset, formatter))
+        {
+            offset += 2; // SBL is 2 bytes
             address += 2;
         }
         else
@@ -350,6 +371,26 @@ bool SimpleICL1501Disassembler::isBRL(int offset)
     return isBranchInstruction(offset, 0x48, 1);
 }
 
+bool SimpleICL1501Disassembler::isSBU(int offset)
+{
+    return isBranchInstruction(offset, 0x50, 0);
+}
+
+bool SimpleICL1501Disassembler::isSBE(int offset)
+{
+    return isBranchInstruction(offset, 0x50, 1);
+}
+
+bool SimpleICL1501Disassembler::isSBH(int offset)
+{
+    return isBranchInstruction(offset, 0x58, 0);
+}
+
+bool SimpleICL1501Disassembler::isSBL(int offset)
+{
+    return isBranchInstruction(offset, 0x58, 1);
+}
+
 bool SimpleICL1501Disassembler::isTLJ(int offset)
 {
     if (offset >= static_cast<int>(program_data.size()) - 1)
@@ -424,6 +465,41 @@ bool SimpleICL1501Disassembler::decodeBRH(int addr, int offset, ICL1501Formatter
 bool SimpleICL1501Disassembler::decodeBRL(int addr, int offset, ICL1501Formatter &formatter)
 {
     return isBRL(offset) && decodeBranchInstruction(addr, offset, formatter, "BRL,", "Branch on low to");
+}
+
+// Helper function to reduce duplication in stack-and-branch instruction decoding
+bool SimpleICL1501Disassembler::decodeStackBranchInstruction(int addr, int offset, ICL1501Formatter &formatter,
+                                                             const std::string &mnemonic, const std::string &description)
+{
+    uint8_t byte1 = program_data[offset];
+    uint8_t byte2 = program_data[offset + 1];
+
+    // Extract address bits from both bytes (same as regular branch instructions)
+    uint8_t page = byte1 & 0x07;     // Last 3 bits of first byte
+    uint8_t location = byte2 & 0xFE; // 7-bit address field (LSB is opcode)
+
+    printStackBranch(addr, byte1, byte2, page, location, mnemonic, description, formatter);
+    return true;
+}
+
+bool SimpleICL1501Disassembler::decodeSBU(int addr, int offset, ICL1501Formatter &formatter)
+{
+    return isSBU(offset) && decodeStackBranchInstruction(addr, offset, formatter, "SBU,", "Stack and branch to");
+}
+
+bool SimpleICL1501Disassembler::decodeSBE(int addr, int offset, ICL1501Formatter &formatter)
+{
+    return isSBE(offset) && decodeStackBranchInstruction(addr, offset, formatter, "SBE,", "Stack and branch on equal to");
+}
+
+bool SimpleICL1501Disassembler::decodeSBH(int addr, int offset, ICL1501Formatter &formatter)
+{
+    return isSBH(offset) && decodeStackBranchInstruction(addr, offset, formatter, "SBH,", "Stack and branch on high to");
+}
+
+bool SimpleICL1501Disassembler::decodeSBL(int addr, int offset, ICL1501Formatter &formatter)
+{
+    return isSBL(offset) && decodeStackBranchInstruction(addr, offset, formatter, "SBL,", "Stack and branch on low to");
 }
 
 bool SimpleICL1501Disassembler::decodeTLJ(int addr, int offset, ICL1501Formatter &formatter)
@@ -516,6 +592,62 @@ void SimpleICL1501Disassembler::printBranch(int addr, uint8_t byte1, uint8_t byt
     }
 
     // Use formatter directly for branch instruction
+    int target_address = (page * 256) + location;
+
+    formatter.startLine();
+    formatter.writeAddress(addr);
+    formatter.writeBytes(byte1, byte2);
+    formatter.writeLabel(label);
+    formatter.writeVerb(mnemonic);
+    formatter.writeOperands(operands + ".");
+
+    // Create descriptive comment with target address
+    std::string target_addr_str = formatSectionRelativeAddress(target_address, addr);
+
+    std::string comment = description + " " + target_addr_str;
+
+    // If operands is a label (starts with 'L'), add it in parentheses
+    if (!operands.empty() && operands[0] == 'L')
+    {
+        comment += " (" + operands + ")";
+    }
+
+    formatter.writeComment(comment);
+    formatter.endLine();
+}
+
+void SimpleICL1501Disassembler::printStackBranch(int addr, uint8_t byte1, uint8_t byte2, uint8_t page, uint8_t location, const std::string &mnemonic, const std::string &description, ICL1501Formatter &formatter)
+{
+    std::string label = "";
+    std::string operands;
+
+    // Get label for this address if labels are enabled
+    if (use_labels)
+    {
+        label = symbol_table.getLabelAtAddress(addr);
+    }
+
+    // Determine operands - use label for target if available, otherwise use page/location
+    if (use_labels)
+    {
+        int target_address = (page * 256) + location;
+        std::string target_label = symbol_table.getLabelAtAddress(target_address);
+        if (!target_label.empty())
+        {
+            operands = target_label;
+        }
+        else
+        {
+            operands = formatSectionRelativeAddress(target_address, addr);
+        }
+    }
+    else
+    {
+        int target_address = (page * 256) + location;
+        operands = formatSectionRelativeAddress(target_address, addr);
+    }
+
+    // Use formatter directly for stack-and-branch instruction
     int target_address = (page * 256) + location;
 
     formatter.startLine();
@@ -691,7 +823,7 @@ int main(int argc, char *argv[])
 {
     if (argc < 2)
     {
-        std::cout << "Simple ICL-1501 Disassembler (BRU/BRE/BRH/BRL/TLJ/TMJ/TLX/TMX instructions)" << std::endl;
+        std::cout << "Simple ICL-1501 Disassembler (BRU/BRE/BRH/BRL/SBU/SBE/SBH/SBL/TLJ/TMJ/TLX/TMX instructions)" << std::endl;
         std::cout << "Usage:" << std::endl;
         std::cout << "  " << argv[0] << " -o <octal_pairs> [--labels]  - Disassemble from octal pairs (manual format)" << std::endl;
         std::cout << "  " << argv[0] << " -x <hex_string> [--labels]   - Disassemble from hex string" << std::endl;

@@ -37,10 +37,18 @@ private:
     bool decodeBranchInstruction(int addr, int offset, ICL1501Formatter &formatter,
                                  const std::string &mnemonic, const std::string &description);
 
+    // Helper function to reduce duplication in stack-and-branch instruction decoding
+    bool decodeStackBranchInstruction(int addr, int offset, ICL1501Formatter &formatter,
+                                      const std::string &mnemonic, const std::string &description);
+
     bool isBRU(int offset);
     bool isBRE(int offset);
     bool isBRH(int offset);
     bool isBRL(int offset);
+    bool isSBU(int offset);
+    bool isSBE(int offset);
+    bool isSBH(int offset);
+    bool isSBL(int offset);
     bool isTLJ(int offset);
     bool isTMJ(int offset);
     bool isTLX(int offset);
@@ -49,11 +57,16 @@ private:
     bool decodeBRE(int addr, int offset, ICL1501Formatter &formatter);
     bool decodeBRH(int addr, int offset, ICL1501Formatter &formatter);
     bool decodeBRL(int addr, int offset, ICL1501Formatter &formatter);
+    bool decodeSBU(int addr, int offset, ICL1501Formatter &formatter);
+    bool decodeSBE(int addr, int offset, ICL1501Formatter &formatter);
+    bool decodeSBH(int addr, int offset, ICL1501Formatter &formatter);
+    bool decodeSBL(int addr, int offset, ICL1501Formatter &formatter);
     bool decodeTLJ(int addr, int offset, ICL1501Formatter &formatter);
     bool decodeTMJ(int addr, int offset, ICL1501Formatter &formatter);
     bool decodeTLX(int addr, int offset, ICL1501Formatter &formatter);
     bool decodeTMX(int addr, int offset, ICL1501Formatter &formatter);
     void printBranch(int addr, uint8_t byte1, uint8_t byte2, uint8_t page, uint8_t location, const std::string &mnemonic, const std::string &description, ICL1501Formatter &formatter);
+    void printStackBranch(int addr, uint8_t byte1, uint8_t byte2, uint8_t page, uint8_t location, const std::string &mnemonic, const std::string &description, ICL1501Formatter &formatter);
     void printJumpInstruction(int addr, uint8_t byte1, uint8_t byte2, const std::string &mnemonic,
                               const std::string &comment_prefix, ICL1501Formatter &formatter);
     void printExitInstruction(int addr, uint8_t byte1, uint8_t byte2, const std::string &mnemonic,

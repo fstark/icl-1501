@@ -117,6 +117,18 @@ bool runICL1501DisassemblerTests()
         {"112-100", "P00-000: 112-100.              BRH,  P02; 064.", "BRH to page 2, location 64"},
         {"110-001", "P00-000: 110-001.              BRL,  P00; 000.", "Basic BRL to page 0"},
         {"112-101", "P00-000: 112-101.              BRL,  P02; 064.", "BRL to page 2, location 64"},
+
+        // SBU/SBE/SBH/SBL (Stack and Branch) tests - Class 1 instructions
+        {"122-000", "P00-000: 122-000.              SBU,  P02; 000.", "Basic SBU to page 2"},
+        {"120-100", "P00-000: 120-100.              SBU,  P00; 064.", "SBU to page 0, location 64"},
+        {"124-000", "P00-000: 124-000.              SBU,  P04; 000.", "SBU to page 4"},
+        {"120-001", "P00-000: 120-001.              SBE,  P00; 000.", "Basic SBE to page 0"},
+        {"122-101", "P00-000: 122-101.              SBE,  P02; 064.", "SBE to page 2, location 64"},
+        {"130-000", "P00-000: 130-000.              SBH,  P00; 000.", "Basic SBH to page 0"},
+        {"132-100", "P00-000: 132-100.              SBH,  P02; 064.", "SBH to page 2, location 64"},
+        {"130-001", "P00-000: 130-001.              SBL,  P00; 000.", "Basic SBL to page 0"},
+        {"132-101", "P00-000: 132-101.              SBL,  P02; 064.", "SBL to page 2, location 64"},
+
         // TLJ (Test Literal and Jump) tests - Class 0 instructions
         {"012-015", "P00-000: 012-015.              TLJ,  +10; DEC:013.", "TLJ forward jump with literal 013"},
         {"013-016", "P00-000: 013-016.              TLJ,  -10; DEC:014.", "TLJ backward jump with literal 014"},
