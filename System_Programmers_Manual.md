@@ -8,6 +8,23 @@ Please enter any defect from the original as a github issue.
 
 Check all examples formatting
 
+# Section 0. ADDITIONAL COMMENTS
+
+This section has been added to ease the comprenhension of the latter sections.
+
+The documentation mixes octal and decimal in subtle ways.
+
+When an instruction pattern is described like: ``11X-XYX0`` it means:
+
+The first ``1`` is octal
+The second ``1`` is octal
+The first ``X`` is octal
+The ``XYX`` can be seen as octal
+The last ``0`` is binary
+
+The instr
+
+
 # Section I. GENERAL
 
 # SPECIFICATION SUMMARY
