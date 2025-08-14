@@ -1140,9 +1140,9 @@ P15-032:   040-240.            02-200.      TMX, 000; HEX:A0.          EQUAL
 
 |      OBJECT      |          SOURCE            |  
 |------------------|----------------------------|  
-| 10X-XYX0         | BRU , RRR+NNN.             |  
+| 10X-XYX0         | BRU ; RRR±NNN.             |  
 |                  | BRU , Pnn; LLL.            |  
-|                  |     ; *+NNN.               |  
+|                  |     ; *±NNN.               |  
 
 WHERE: 10X is the command, in which  
 X is the page.  
@@ -1176,12 +1176,12 @@ execution of a branch function.
 #### EXAMPLE:  
 
 ```
-PPP-LLL:   MP1-MP2-MP3-MP4.   E SEQ. NO.   LAB:   VERB   OPERANDS     COMMENTS  
-P15-034:   105-042.            03-030.      BRU; IN1.                 WITHIN A  
-P15-036:   105-036.            03-040.      BRU; *+0.                  SECTION  
-P15-040:   107-000.            03-050.      BRU; P15, 000.  
-P15-042:   150-000.            03-060.      IN1; SMS; S#0.            OUT OF A  
-P15-044:   106-144.            03-070.      BRU; P06, 100.             SECTION  
+PPP-LLL: MP1-MP2-MP3-MP4. E SEQ. NO. LAB: VERB  OPERANDS     COMMENTS  
+P15-034: 105-042.           03-030.       BRU;  IN1.         WITHIN A  
+P15-036: 105-036.           03-040.       BRU;  *+0.         SECTION  
+P15-040: 107-000.           03-050.       BRU,  P15; 000.  
+P15-042: 150-000.           03-060.  IN1: SMS;  S#0.         OUT OF A  
+P15-044: 106-144.           03-070.       BRU,  P06; 100.    SECTION  
 ```
 
 ---
