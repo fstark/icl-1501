@@ -188,7 +188,7 @@ std::vector<std::string> SimpleICL1501Disassembler::disassemble(std::span<const 
             }
             else if (isTMJ(offset))
             {
-                // Create label for TMJ target  
+                // Create label for TMJ target
                 createJumpLabel(address, offset);
             }
             offset += 2;
@@ -211,7 +211,17 @@ std::vector<std::string> SimpleICL1501Disassembler::disassemble(std::span<const 
     int offset = 0;
     while (offset < static_cast<int>(program_data.size()) - 1)
     {
-        if (decodeTLJ(address, offset, formatter))
+        if (decodeTLX(address, offset, formatter))
+        {
+            offset += 2; // TLX is 2 bytes
+            address += 2;
+        }
+        else if (decodeTMX(address, offset, formatter))
+        {
+            offset += 2; // TMX is 2 bytes
+            address += 2;
+        }
+        else if (decodeTLJ(address, offset, formatter))
         {
             offset += 2; // TLJ is 2 bytes
             address += 2;
@@ -290,7 +300,8 @@ std::string SimpleICL1501Disassembler::formatSectionRelativeAddress(int target_a
     return oss.str();
 }
 
-bool SimpleICL1501Disassembler::isBRU(int offset)
+// Helper function to reduce duplication in branch instruction detection
+bool SimpleICL1501Disassembler::isBranchInstruction(int offset, uint8_t byte1_pattern, uint8_t byte2_lsb)
 {
     if (offset >= static_cast<int>(program_data.size()) - 1)
     {
@@ -300,50 +311,43 @@ bool SimpleICL1501Disassembler::isBRU(int offset)
     uint8_t byte1 = program_data[offset];
     uint8_t byte2 = program_data[offset + 1];
 
-    // BRU binary format: 01000AAA AAAAAAA0
-    return (byte1 & 0xF8) == 0x40 && (byte2 & 0x01) == 0;
+    return (byte1 & 0xF8) == byte1_pattern && (byte2 & 0x01) == byte2_lsb;
+}
+
+// Helper function to reduce duplication in branch instruction decoding
+bool SimpleICL1501Disassembler::decodeBranchInstruction(int addr, int offset, ICL1501Formatter &formatter,
+                                                        const std::string &mnemonic,
+                                                        const std::string &description)
+{
+    uint8_t byte1 = program_data[offset];
+    uint8_t byte2 = program_data[offset + 1];
+
+    // Extract address bits from both bytes
+    uint8_t page = byte1 & 0x07;     // Last 3 bits of first byte
+    uint8_t location = byte2 & 0xFE; // 7-bit address field (LSB is opcode)
+
+    printBranch(addr, byte1, byte2, page, location, mnemonic, description, formatter);
+    return true;
+}
+
+bool SimpleICL1501Disassembler::isBRU(int offset)
+{
+    return isBranchInstruction(offset, 0x40, 0);
 }
 
 bool SimpleICL1501Disassembler::isBRE(int offset)
 {
-    if (offset >= static_cast<int>(program_data.size()) - 1)
-    {
-        return false;
-    }
-
-    uint8_t byte1 = program_data[offset];
-    uint8_t byte2 = program_data[offset + 1];
-
-    // BRE binary format: 01000AAA AAAAAAA1
-    return (byte1 & 0xF8) == 0x40 && (byte2 & 0x01) == 1;
+    return isBranchInstruction(offset, 0x40, 1);
 }
 
 bool SimpleICL1501Disassembler::isBRH(int offset)
 {
-    if (offset >= static_cast<int>(program_data.size()) - 1)
-    {
-        return false;
-    }
-
-    uint8_t byte1 = program_data[offset];
-    uint8_t byte2 = program_data[offset + 1];
-
-    // BRH binary format: 01001AAA AAAAAAA0
-    return (byte1 & 0xF8) == 0x48 && (byte2 & 0x01) == 0;
+    return isBranchInstruction(offset, 0x48, 0);
 }
 
 bool SimpleICL1501Disassembler::isBRL(int offset)
 {
-    if (offset >= static_cast<int>(program_data.size()) - 1)
-    {
-        return false;
-    }
-
-    uint8_t byte1 = program_data[offset];
-    uint8_t byte2 = program_data[offset + 1];
-
-    // BRL binary format: 01001AAA AAAAAAA1
-    return (byte1 & 0xF8) == 0x48 && (byte2 & 0x01) == 1;
+    return isBranchInstruction(offset, 0x48, 1);
 }
 
 bool SimpleICL1501Disassembler::isTLJ(int offset)
@@ -374,76 +378,52 @@ bool SimpleICL1501Disassembler::isTMJ(int offset)
     return (byte1 & 0xE0) == 0x20;
 }
 
-bool SimpleICL1501Disassembler::decodeBRU(int addr, int offset, ICL1501Formatter &formatter)
+bool SimpleICL1501Disassembler::isTLX(int offset)
 {
-    if (!isBRU(offset))
+    if (offset >= static_cast<int>(program_data.size()) - 1)
     {
         return false;
     }
 
     uint8_t byte1 = program_data[offset];
-    uint8_t byte2 = program_data[offset + 1];
 
-    // Extract address bits from both bytes
-    uint8_t page = byte1 & 0x07;     // Last 3 bits of first byte
-    uint8_t location = byte2 & 0xFE; // 7-bit address field (LSB is opcode)
+    // TLX binary format: 00000000 LLLLLLLL (test literal and exit - jump count = 0)
+    // First byte pattern: 00000000 (all bits must be 0)
+    return byte1 == 0x00;
+}
 
-    printBranch(addr, byte1, byte2, page, location, "BRU,", "Branch to", formatter);
-    return true;
+bool SimpleICL1501Disassembler::isTMX(int offset)
+{
+    if (offset >= static_cast<int>(program_data.size()) - 1)
+    {
+        return false;
+    }
+
+    uint8_t byte1 = program_data[offset];
+
+    // TMX binary format: 00100000 MMMMMMMM (test mask and exit - jump count = 0)
+    // First byte pattern: 00100000 (exactly 0x20)
+    return byte1 == 0x20;
+}
+
+bool SimpleICL1501Disassembler::decodeBRU(int addr, int offset, ICL1501Formatter &formatter)
+{
+    return isBRU(offset) && decodeBranchInstruction(addr, offset, formatter, "BRU,", "Branch to");
 }
 
 bool SimpleICL1501Disassembler::decodeBRE(int addr, int offset, ICL1501Formatter &formatter)
 {
-    if (!isBRE(offset))
-    {
-        return false;
-    }
-
-    uint8_t byte1 = program_data[offset];
-    uint8_t byte2 = program_data[offset + 1];
-
-    // Extract address bits from both bytes
-    uint8_t page = byte1 & 0x07;     // Last 3 bits of first byte
-    uint8_t location = byte2 & 0xFE; // 7-bit address field (LSB is opcode)
-
-    printBranch(addr, byte1, byte2, page, location, "BRE,", "Branch on equal to", formatter);
-    return true;
+    return isBRE(offset) && decodeBranchInstruction(addr, offset, formatter, "BRE,", "Branch on equal to");
 }
 
 bool SimpleICL1501Disassembler::decodeBRH(int addr, int offset, ICL1501Formatter &formatter)
 {
-    if (!isBRH(offset))
-    {
-        return false;
-    }
-
-    uint8_t byte1 = program_data[offset];
-    uint8_t byte2 = program_data[offset + 1];
-
-    // Extract address bits from both bytes
-    uint8_t page = byte1 & 0x07;     // Last 3 bits of first byte
-    uint8_t location = byte2 & 0xFE; // 7-bit address field (LSB is opcode)
-
-    printBranch(addr, byte1, byte2, page, location, "BRH,", "Branch on high to", formatter);
-    return true;
+    return isBRH(offset) && decodeBranchInstruction(addr, offset, formatter, "BRH,", "Branch on high to");
 }
 
 bool SimpleICL1501Disassembler::decodeBRL(int addr, int offset, ICL1501Formatter &formatter)
 {
-    if (!isBRL(offset))
-    {
-        return false;
-    }
-
-    uint8_t byte1 = program_data[offset];
-    uint8_t byte2 = program_data[offset + 1];
-
-    // Extract address bits from both bytes
-    uint8_t page = byte1 & 0x07;     // Last 3 bits of first byte
-    uint8_t location = byte2 & 0xFE; // 7-bit address field (LSB is opcode)
-
-    printBranch(addr, byte1, byte2, page, location, "BRL,", "Branch on low to", formatter);
-    return true;
+    return isBRL(offset) && decodeBranchInstruction(addr, offset, formatter, "BRL,", "Branch on low to");
 }
 
 bool SimpleICL1501Disassembler::decodeTLJ(int addr, int offset, ICL1501Formatter &formatter)
@@ -471,6 +451,36 @@ bool SimpleICL1501Disassembler::decodeTMJ(int addr, int offset, ICL1501Formatter
     uint8_t byte2 = program_data[offset + 1];
 
     printJumpInstruction(addr, byte1, byte2, "TMJ,", "If mask ", formatter);
+    return true;
+}
+
+bool SimpleICL1501Disassembler::decodeTLX(int addr, int offset, ICL1501Formatter &formatter)
+{
+    if (!isTLX(offset))
+    {
+        return false;
+    }
+
+    uint8_t byte1 = program_data[offset];
+    uint8_t byte2 = program_data[offset + 1];
+
+    // TLX is like TLJ but with jump count = 0 (exit/halt)
+    printExitInstruction(addr, byte1, byte2, "TLX,", "Exit if ", formatter);
+    return true;
+}
+
+bool SimpleICL1501Disassembler::decodeTMX(int addr, int offset, ICL1501Formatter &formatter)
+{
+    if (!isTMX(offset))
+    {
+        return false;
+    }
+
+    uint8_t byte1 = program_data[offset];
+    uint8_t byte2 = program_data[offset + 1];
+
+    // TMX is like TMJ but with jump count = 0 (exit/halt)
+    printExitInstruction(addr, byte1, byte2, "TMX,", "Exit if mask ", formatter);
     return true;
 }
 
@@ -530,9 +540,9 @@ void SimpleICL1501Disassembler::printBranch(int addr, uint8_t byte1, uint8_t byt
     formatter.endLine();
 }
 
-void SimpleICL1501Disassembler::printJumpInstruction(int addr, uint8_t byte1, uint8_t byte2, 
-                                                     const std::string &mnemonic, 
-                                                     const std::string &comment_prefix, 
+void SimpleICL1501Disassembler::printJumpInstruction(int addr, uint8_t byte1, uint8_t byte2,
+                                                     const std::string &mnemonic,
+                                                     const std::string &comment_prefix,
                                                      ICL1501Formatter &formatter)
 {
     // Extract jump count and direction from first byte
@@ -564,12 +574,15 @@ void SimpleICL1501Disassembler::printJumpInstruction(int addr, uint8_t byte1, ui
 
     // Create descriptive comment with target label if available
     std::string comment;
-    if (mnemonic == "TMJ,") {
+    if (mnemonic == "TMJ,")
+    {
         // For TMJ, display mask in hex format
         std::ostringstream mask_stream;
         mask_stream << "0x" << std::hex << std::uppercase << std::setfill('0') << std::setw(2) << static_cast<int>(data_byte);
         comment = comment_prefix + mask_stream.str() + ", jump " + direction + std::to_string(jump_bytes);
-    } else {
+    }
+    else
+    {
         // For TLJ, display literal in decimal format
         comment = comment_prefix + std::to_string(static_cast<int>(data_byte)) + ", jump " + direction + std::to_string(jump_bytes);
     }
@@ -583,6 +596,50 @@ void SimpleICL1501Disassembler::printJumpInstruction(int addr, uint8_t byte1, ui
         {
             comment += " (" + target_label + ")";
         }
+    }
+
+    formatter.writeComment(comment);
+    formatter.endLine();
+}
+
+void SimpleICL1501Disassembler::printExitInstruction(int addr, uint8_t byte1, uint8_t byte2,
+                                                     const std::string &mnemonic,
+                                                     const std::string &comment_prefix,
+                                                     ICL1501Formatter &formatter)
+{
+    // For TLX and TMX, jump count is always 0 (exit/halt)
+    uint8_t data_byte = byte2; // Second byte: literal or mask
+
+    std::string label = "";
+    if (use_labels)
+    {
+        label = symbol_table.getLabelAtAddress(addr);
+    }
+
+    // Format operands - all data bytes use DEC format, always show 000 for exit instructions
+    std::ostringstream operands_stream;
+    operands_stream << "000; DEC:" << std::setfill('0') << std::setw(3) << std::dec << static_cast<int>(data_byte) << ".";
+
+    formatter.startLine();
+    formatter.writeAddress(addr);
+    formatter.writeBytes(byte1, byte2);
+    formatter.writeLabel(label);
+    formatter.writeVerb(mnemonic);
+    formatter.writeOperands(operands_stream.str());
+
+    // Create descriptive comment
+    std::string comment;
+    if (mnemonic == "TMX,")
+    {
+        // For TMX, display mask in hex format
+        std::ostringstream mask_stream;
+        mask_stream << "0x" << std::hex << std::uppercase << std::setfill('0') << std::setw(2) << static_cast<int>(data_byte);
+        comment = comment_prefix + mask_stream.str();
+    }
+    else
+    {
+        // For TLX, display literal in decimal format
+        comment = comment_prefix + std::to_string(static_cast<int>(data_byte));
     }
 
     formatter.writeComment(comment);
@@ -634,7 +691,7 @@ int main(int argc, char *argv[])
 {
     if (argc < 2)
     {
-        std::cout << "Simple ICL-1501 Disassembler (BRU/BRE/BRH/BRL/TLJ/TMJ instructions)" << std::endl;
+        std::cout << "Simple ICL-1501 Disassembler (BRU/BRE/BRH/BRL/TLJ/TMJ/TLX/TMX instructions)" << std::endl;
         std::cout << "Usage:" << std::endl;
         std::cout << "  " << argv[0] << " -o <octal_pairs> [--labels]  - Disassemble from octal pairs (manual format)" << std::endl;
         std::cout << "  " << argv[0] << " -x <hex_string> [--labels]   - Disassemble from hex string" << std::endl;

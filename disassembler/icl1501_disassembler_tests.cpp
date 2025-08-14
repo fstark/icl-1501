@@ -123,7 +123,6 @@ bool runICL1501DisassemblerTests()
         {"006-015", "P00-000: 006-015.              TLJ,  +06; DEC:013.", "TLJ forward jump with literal 013"},
         {"004-017", "P00-000: 004-017.              TLJ,  +04; DEC:015.", "TLJ forward jump with literal 015"},
         // TLJ edge cases - jump offsets
-        {"000-020", "P00-000: 000-020.              TLJ,  +00; DEC:016.", "TLJ zero offset (no jump)"},
         {"036-025", "P00-000: 036-025.              TLJ,  +30; DEC:021.", "TLJ maximum forward jump (+30 bytes)"},
         {"037-030", "P00-000: 037-030.              TLJ,  -30; DEC:024.", "TLJ maximum backward jump (-30 bytes)"},
         // TMJ (Test Mask and Jump) tests - Class 0 instructions
@@ -132,8 +131,22 @@ bool runICL1501DisassemblerTests()
         {"076-377", "P00-000: 076-377.              TMJ,  +30; DEC:255.", "TMJ maximum forward jump with mask 255"},
         {"044-004", "P00-000: 044-004.              TMJ,  +04; DEC:004.", "TMJ forward jump with mask 004"},
         // TMJ edge cases - jump offsets
-        {"040-020", "P00-000: 040-020.              TMJ,  +00; DEC:016.", "TMJ zero offset (no jump)"},
         {"077-030", "P00-000: 077-030.              TMJ,  -30; DEC:024.", "TMJ maximum backward jump (-30 bytes)"},
+
+        // TLX tests - Test Literal and Exit
+        {"000-020", "P00-000: 000-020.              TLX,  000; DEC:016.", "TLX exit with literal 016 (was TLJ zero offset)"},
+        {"000-017", "P00-000: 000-017.              TLX,  000; DEC:015.", "TLX exit with literal 015"},
+        {"000-013", "P00-000: 000-013.              TLX,  000; DEC:011.", "TLX exit with literal 013"},
+        {"000-377", "P00-000: 000-377.              TLX,  000; DEC:255.", "TLX exit with maximum literal"},
+        {"000-000", "P00-000: 000-000.              TLX,  000; DEC:000.", "TLX exit with literal 0"},
+
+        // TMX tests - Test Mask and Exit
+        {"040-020", "P00-000: 040-020.              TMX,  000; DEC:016.", "TMX exit with mask 020 (was TMJ zero offset)"},
+        {"040-010", "P00-000: 040-010.              TMX,  000; DEC:008.", "TMX exit with mask 010"},
+        {"040-310", "P00-000: 040-310.              TMX,  000; DEC:200.", "TMX exit with mask 310"},
+        {"040-240", "P00-000: 040-240.              TMX,  000; DEC:160.", "TMX exit with mask 240"},
+        {"040-377", "P00-000: 040-377.              TMX,  000; DEC:255.", "TMX exit with maximum mask"},
+
         // Section-relative addressing tests
         {"P13-000: 115-062", "P13-000: 115-062.              BRH,  P15; 050.", "BRH from section 1 shows P15"},
         {"P27-000: 112-100", "P27-000: 112-100.              BRH,  P22; 064.", "BRH from section 2 shows P22"},
@@ -152,7 +165,7 @@ bool runICL1501DisassemblerTests()
 
         if (data.empty())
         {
-            std::cout << "  FAIL: Could not parse test data" << std::endl;
+            std::cout << "   FAIL: Could not parse test data" << std::endl;
             failed++;
             continue;
         }
@@ -163,7 +176,7 @@ bool runICL1501DisassemblerTests()
 
         if (output_lines.empty())
         {
-            std::cout << "  FAIL: No output produced" << std::endl;
+            std::cout << "   FAIL: No output produced" << std::endl;
             failed++;
             continue;
         }
@@ -179,15 +192,15 @@ bool runICL1501DisassemblerTests()
         if (normalized_actual.length() >= normalized_expected.length() &&
             normalized_actual.substr(0, normalized_expected.length()) == normalized_expected)
         {
-            std::cout << "  PASS: " << actual_output << std::endl;
+            std::cout << "   PASS: " << actual_output << std::endl;
             passed++;
         }
         else
         {
-            std::cout << "  FAIL: Expected: " << test.expected_output << std::endl;
-            std::cout << "        Got:      " << actual_output << std::endl;
-            std::cout << "        Normalized Expected: " << normalized_expected << std::endl;
-            std::cout << "        Normalized Got:      " << normalized_actual << std::endl;
+            std::cout << "   FAIL: Expected: " << test.expected_output << std::endl;
+            std::cout << "         Got:      " << actual_output << std::endl;
+            std::cout << "         Normalized Expected: " << normalized_expected << std::endl;
+            std::cout << "         Normalized Got:      " << normalized_actual << std::endl;
             failed++;
         }
     }
