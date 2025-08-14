@@ -34,11 +34,18 @@ private:
     bool isBRE(int offset);
     bool isBRH(int offset);
     bool isBRL(int offset);
+    bool isTLJ(int offset);
+    bool isTMJ(int offset);
     bool decodeBRU(int addr, int offset, ICL1501Formatter &formatter);
     bool decodeBRE(int addr, int offset, ICL1501Formatter &formatter);
     bool decodeBRH(int addr, int offset, ICL1501Formatter &formatter);
     bool decodeBRL(int addr, int offset, ICL1501Formatter &formatter);
+    bool decodeTLJ(int addr, int offset, ICL1501Formatter &formatter);
+    bool decodeTMJ(int addr, int offset, ICL1501Formatter &formatter);
     void printBranch(int addr, uint8_t byte1, uint8_t byte2, uint8_t page, uint8_t location, const std::string &mnemonic, const std::string &description, ICL1501Formatter &formatter);
+    void printJumpInstruction(int addr, uint8_t byte1, uint8_t byte2, const std::string &mnemonic, 
+                             const std::string &comment_prefix, ICL1501Formatter &formatter);
+    void createJumpLabel(int address, int offset); // Helper for jump label generation
     void printUnknown(int addr, int offset, ICL1501Formatter &formatter);
 
 public:

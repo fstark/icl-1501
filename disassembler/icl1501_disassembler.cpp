@@ -130,7 +130,7 @@ void SimpleICL1501Disassembler::disassemble()
     }
 
     // Call the span version and print the results
-    auto lines = disassemble(program_data, start_address, use_labels);
+    auto lines = disassemble(program_data, start_address, use_labels, false);
     for (const auto &line : lines)
     {
         std::cout << line << '\n';
@@ -181,6 +181,16 @@ std::vector<std::string> SimpleICL1501Disassembler::disassemble(std::span<const 
                     symbol_table.createLabelAtAddress(target_address);
                 }
             }
+            else if (isTLJ(offset))
+            {
+                // Create label for TLJ target
+                createJumpLabel(address, offset);
+            }
+            else if (isTMJ(offset))
+            {
+                // Create label for TMJ target  
+                createJumpLabel(address, offset);
+            }
             offset += 2;
             address += 2;
         }
@@ -201,7 +211,17 @@ std::vector<std::string> SimpleICL1501Disassembler::disassemble(std::span<const 
     int offset = 0;
     while (offset < static_cast<int>(program_data.size()) - 1)
     {
-        if (decodeBRU(address, offset, formatter))
+        if (decodeTLJ(address, offset, formatter))
+        {
+            offset += 2; // TLJ is 2 bytes
+            address += 2;
+        }
+        else if (decodeTMJ(address, offset, formatter))
+        {
+            offset += 2; // TMJ is 2 bytes
+            address += 2;
+        }
+        else if (decodeBRU(address, offset, formatter))
         {
             offset += 2; // BRU is 2 bytes
             address += 2;
@@ -326,6 +346,34 @@ bool SimpleICL1501Disassembler::isBRL(int offset)
     return (byte1 & 0xF8) == 0x48 && (byte2 & 0x01) == 1;
 }
 
+bool SimpleICL1501Disassembler::isTLJ(int offset)
+{
+    if (offset >= static_cast<int>(program_data.size()) - 1)
+    {
+        return false;
+    }
+
+    uint8_t byte1 = program_data[offset];
+
+    // TLJ binary format: 000JJJJ0 LLLLLLLL (where JJJJ = jump count, L = literal)
+    // First byte pattern: 000xxxxx (top three bits must be 000)
+    return (byte1 & 0xE0) == 0x00;
+}
+
+bool SimpleICL1501Disassembler::isTMJ(int offset)
+{
+    if (offset >= static_cast<int>(program_data.size()) - 1)
+    {
+        return false;
+    }
+
+    uint8_t byte1 = program_data[offset];
+
+    // TMJ binary format: 001NNNN0 MMMMMMMM or 001NNNN1 MMMMMMMM (where NNNN = jump count, M = mask)
+    // First byte pattern: 001xxxxx (top three bits must be 001)
+    return (byte1 & 0xE0) == 0x20;
+}
+
 bool SimpleICL1501Disassembler::decodeBRU(int addr, int offset, ICL1501Formatter &formatter)
 {
     if (!isBRU(offset))
@@ -398,6 +446,34 @@ bool SimpleICL1501Disassembler::decodeBRL(int addr, int offset, ICL1501Formatter
     return true;
 }
 
+bool SimpleICL1501Disassembler::decodeTLJ(int addr, int offset, ICL1501Formatter &formatter)
+{
+    if (!isTLJ(offset))
+    {
+        return false;
+    }
+
+    uint8_t byte1 = program_data[offset];
+    uint8_t byte2 = program_data[offset + 1];
+
+    printJumpInstruction(addr, byte1, byte2, "TLJ,", "If ", formatter);
+    return true;
+}
+
+bool SimpleICL1501Disassembler::decodeTMJ(int addr, int offset, ICL1501Formatter &formatter)
+{
+    if (!isTMJ(offset))
+    {
+        return false;
+    }
+
+    uint8_t byte1 = program_data[offset];
+    uint8_t byte2 = program_data[offset + 1];
+
+    printJumpInstruction(addr, byte1, byte2, "TMJ,", "If mask ", formatter);
+    return true;
+}
+
 void SimpleICL1501Disassembler::printBranch(int addr, uint8_t byte1, uint8_t byte2, uint8_t page, uint8_t location, const std::string &mnemonic, const std::string &description, ICL1501Formatter &formatter)
 {
     std::string label = "";
@@ -454,6 +530,74 @@ void SimpleICL1501Disassembler::printBranch(int addr, uint8_t byte1, uint8_t byt
     formatter.endLine();
 }
 
+void SimpleICL1501Disassembler::printJumpInstruction(int addr, uint8_t byte1, uint8_t byte2, 
+                                                     const std::string &mnemonic, 
+                                                     const std::string &comment_prefix, 
+                                                     ICL1501Formatter &formatter)
+{
+    // Extract jump count and direction from first byte
+    uint8_t jump_count = (byte1 >> 1) & 0x0F; // Bits 4-1: jump count (0-15 instructions)
+    bool is_backward = (byte1 & 0x01) != 0;   // Bit 0: direction (0=forward, 1=backward)
+    uint8_t data_byte = byte2;                // Second byte: literal or mask
+
+    std::string label = "";
+    if (use_labels)
+    {
+        label = symbol_table.getLabelAtAddress(addr);
+    }
+
+    // Format the jump offset in bytes (instruction count * 2)
+    int jump_bytes = jump_count * 2;
+    std::string direction = is_backward ? "-" : "+";
+
+    // Format operands - all data bytes use DEC format
+    std::ostringstream operands_stream;
+    operands_stream << direction << std::setfill('0') << std::setw(2) << std::dec << jump_bytes;
+    operands_stream << "; DEC:" << std::setfill('0') << std::setw(3) << std::dec << static_cast<int>(data_byte) << ".";
+
+    formatter.startLine();
+    formatter.writeAddress(addr);
+    formatter.writeBytes(byte1, byte2);
+    formatter.writeLabel(label);
+    formatter.writeVerb(mnemonic);
+    formatter.writeOperands(operands_stream.str());
+
+    // Create descriptive comment with target label if available
+    std::string comment = comment_prefix + std::to_string(static_cast<int>(data_byte)) +
+                          ", jump " + direction + std::to_string(jump_bytes);
+
+    // Add target label to comment if labels are enabled
+    if (use_labels)
+    {
+        int target_address = is_backward ? (addr - jump_bytes) : (addr + jump_bytes);
+        std::string target_label = symbol_table.getLabelAtAddress(target_address);
+        if (!target_label.empty())
+        {
+            comment += " (" + target_label + ")";
+        }
+    }
+
+    formatter.writeComment(comment);
+    formatter.endLine();
+}
+
+void SimpleICL1501Disassembler::createJumpLabel(int address, int offset)
+{
+    uint8_t byte1 = program_data[offset];
+    uint8_t jump_count = (byte1 >> 1) & 0x0F; // Bits 4-1: jump count (0-15 instructions)
+    bool is_backward = (byte1 & 0x01) != 0;   // Bit 0: direction (0=forward, 1=backward)
+
+    int jump_bytes = jump_count * 2;
+    int target_address = is_backward ? (address - jump_bytes) : (address + jump_bytes);
+
+    // Only create label if target is within our program range
+    int program_end = start_address + static_cast<int>(program_data.size());
+    if (target_address >= start_address && target_address < program_end)
+    {
+        symbol_table.createLabelAtAddress(target_address);
+    }
+}
+
 void SimpleICL1501Disassembler::printUnknown(int addr, int offset, ICL1501Formatter &formatter)
 {
     if (offset < static_cast<int>(program_data.size()) - 1)
@@ -482,7 +626,7 @@ int main(int argc, char *argv[])
 {
     if (argc < 2)
     {
-        std::cout << "Simple ICL-1501 Disassembler (BRU/BRE/BRH/BRL instructions)" << std::endl;
+        std::cout << "Simple ICL-1501 Disassembler (BRU/BRE/BRH/BRL/TLJ/TMJ instructions)" << std::endl;
         std::cout << "Usage:" << std::endl;
         std::cout << "  " << argv[0] << " -o <octal_pairs> [--labels]  - Disassemble from octal pairs (manual format)" << std::endl;
         std::cout << "  " << argv[0] << " -x <hex_string> [--labels]   - Disassemble from hex string" << std::endl;

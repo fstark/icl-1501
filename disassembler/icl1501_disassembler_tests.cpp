@@ -117,6 +117,23 @@ bool runICL1501DisassemblerTests()
         {"112-100", "P00-000: 112-100.              BRH,  P02; 064.", "BRH to page 2, location 64"},
         {"110-001", "P00-000: 110-001.              BRL,  P00; 000.", "Basic BRL to page 0"},
         {"112-101", "P00-000: 112-101.              BRL,  P02; 064.", "BRL to page 2, location 64"},
+        // TLJ (Test Literal and Jump) tests - Class 0 instructions
+        {"012-015", "P00-000: 012-015.              TLJ,  +10; DEC:013.", "TLJ forward jump with literal 013"},
+        {"013-016", "P00-000: 013-016.              TLJ,  -10; DEC:014.", "TLJ backward jump with literal 014"},
+        {"006-015", "P00-000: 006-015.              TLJ,  +06; DEC:013.", "TLJ forward jump with literal 013"},
+        {"004-017", "P00-000: 004-017.              TLJ,  +04; DEC:015.", "TLJ forward jump with literal 015"},
+        // TLJ edge cases - jump offsets
+        {"000-020", "P00-000: 000-020.              TLJ,  +00; DEC:016.", "TLJ zero offset (no jump)"},
+        {"036-025", "P00-000: 036-025.              TLJ,  +30; DEC:021.", "TLJ maximum forward jump (+30 bytes)"},
+        {"037-030", "P00-000: 037-030.              TLJ,  -30; DEC:024.", "TLJ maximum backward jump (-30 bytes)"},
+        // TMJ (Test Mask and Jump) tests - Class 0 instructions
+        {"050-016", "P00-000: 050-016.              TMJ,  +08; DEC:014.", "TMJ forward jump with mask 014"},
+        {"051-050", "P00-000: 051-050.              TMJ,  -08; DEC:040.", "TMJ backward jump with mask 040"},
+        {"076-377", "P00-000: 076-377.              TMJ,  +30; DEC:255.", "TMJ maximum forward jump with mask 255"},
+        {"044-004", "P00-000: 044-004.              TMJ,  +04; DEC:004.", "TMJ forward jump with mask 004"},
+        // TMJ edge cases - jump offsets
+        {"040-020", "P00-000: 040-020.              TMJ,  +00; DEC:016.", "TMJ zero offset (no jump)"},
+        {"077-030", "P00-000: 077-030.              TMJ,  -30; DEC:024.", "TMJ maximum backward jump (-30 bytes)"},
         // Section-relative addressing tests
         {"P13-000: 115-062", "P13-000: 115-062.              BRH,  P15; 050.", "BRH from section 1 shows P15"},
         {"P27-000: 112-100", "P27-000: 112-100.              BRH,  P22; 064.", "BRH from section 2 shows P22"},

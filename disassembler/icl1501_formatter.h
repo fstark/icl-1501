@@ -14,7 +14,7 @@ private:
     static const int MP_BYTES_WIDTH = 16;    // "MP1-MP2-MP3-MP4." content width
     static const int LAB_WIDTH = 4;          // "LAB:" content width
     static const int VERB_WIDTH = 4;         // "VERB" content width
-    static const int OPERANDS_WIDTH = 12;    // "OPERANDS" content width
+    static const int OPERANDS_WIDTH = 16;    // "OPERANDS" content width
     static const int COMMENTS_WIDTH = 20;    // "COMMENTS" content width
     
     std::ostream* output_stream;
