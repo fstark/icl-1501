@@ -223,6 +223,21 @@ std::vector<std::string> SimpleICL1501Disassembler::disassemble(std::span<const 
             offset += 2; // EXB is 2 bytes
             address += 2;
         }
+        else if (decodeSMS(address, offset, formatter))
+        {
+            offset += 2; // SMS is 2 bytes
+            address += 2;
+        }
+        else if (decodeSMC(address, offset, formatter))
+        {
+            offset += 2; // SMC is 2 bytes
+            address += 2;
+        }
+        else if (decodeSSC(address, offset, formatter))
+        {
+            offset += 2; // SSC is 2 bytes
+            address += 2;
+        }
         else if (decodeTLX(address, offset, formatter))
         {
             offset += 2; // TLX is 2 bytes
@@ -478,6 +493,51 @@ bool SimpleICL1501Disassembler::isEXB(int offset)
     return isBranchInstruction(offset, 0x70, 0);
 }
 
+bool SimpleICL1501Disassembler::isSMS(int offset)
+{
+    if (offset >= static_cast<int>(program_data.size()) - 1)
+    {
+        return false;
+    }
+
+    uint8_t byte1 = program_data[offset];
+    uint8_t byte2 = program_data[offset + 1];
+
+    // SMS binary format: 01101000 000SSS00 (150-0X0 in octal)
+    // byte1 must be 0x68 (01101000), byte2 format: 000SSS00
+    return byte1 == 0x68 && (byte2 & 0xC3) == 0x00;
+}
+
+bool SimpleICL1501Disassembler::isSMC(int offset)
+{
+    if (offset >= static_cast<int>(program_data.size()) - 1)
+    {
+        return false;
+    }
+
+    uint8_t byte1 = program_data[offset];
+    uint8_t byte2 = program_data[offset + 1];
+
+    // SMC binary format: 01101001 UV000000 (151-Y00 in octal)
+    // byte1 must be 0x69 (01101001), byte2 format: UV000000
+    return byte1 == 0x69 && (byte2 & 0x3F) == 0x00;
+}
+
+bool SimpleICL1501Disassembler::isSSC(int offset)
+{
+    if (offset >= static_cast<int>(program_data.size()) - 1)
+    {
+        return false;
+    }
+
+    uint8_t byte1 = program_data[offset];
+    uint8_t byte2 = program_data[offset + 1];
+
+    // SSC binary format: 01101010 UVSSS000 (152-YX0 in octal)
+    // byte1 must be 0x6A (01101010), byte2 format: UVSSS000
+    return byte1 == 0x6A && (byte2 & 0x07) == 0x00;
+}
+
 bool SimpleICL1501Disassembler::decodeBRU(int addr, int offset, ICL1501Formatter &formatter)
 {
     return isBRU(offset) && decodeBranchInstruction(addr, offset, formatter, "BRU,", "Branch to");
@@ -620,6 +680,82 @@ bool SimpleICL1501Disassembler::decodeEXB(int addr, int offset, ICL1501Formatter
     uint8_t location = byte2 & 0xFE; // 7-bit address field (LSB is opcode)
 
     printExitAndBranch(addr, byte1, byte2, page, location, formatter);
+    return true;
+}
+
+bool SimpleICL1501Disassembler::decodeSMS(int addr, int offset, ICL1501Formatter &formatter)
+{
+    if (!isSMS(offset))
+    {
+        return false;
+    }
+
+    uint8_t byte1 = program_data[offset];
+    uint8_t byte2 = program_data[offset + 1];
+
+    // Extract section bits: 000SSS00
+    uint8_t section = (byte2 >> 2) & 0x07;
+
+    std::string operands = "S#" + std::to_string(section) + ".";
+    std::string comment = "Set memory section to S#" + std::to_string(section);
+
+    printMemoryControl(addr, byte1, byte2, "SMS,", operands, comment, formatter);
+    return true;
+}
+
+bool SimpleICL1501Disassembler::decodeSMC(int addr, int offset, ICL1501Formatter &formatter)
+{
+    if (!isSMC(offset))
+    {
+        return false;
+    }
+
+    uint8_t byte1 = program_data[offset];
+    uint8_t byte2 = program_data[offset + 1];
+
+    // Extract control bits: UV000000
+    uint8_t control = (byte2 >> 6) & 0x03;
+
+    std::string operands = "C#" + std::to_string(control) + ".";
+    std::string comment;
+    switch (control)
+    {
+    case 0:
+        comment = "Set memory control to C#0 (reset U & V bits)";
+        break;
+    case 1:
+        comment = "Set memory control to C#1 (set V bit, reset U bit)";
+        break;
+    case 2:
+        comment = "Set memory control to C#2 (set U bit, reset V bit)";
+        break;
+    case 3:
+        comment = "Set memory control to C#3 (set U & V bits)";
+        break;
+    }
+
+    printMemoryControl(addr, byte1, byte2, "SMC,", operands, comment, formatter);
+    return true;
+}
+
+bool SimpleICL1501Disassembler::decodeSSC(int addr, int offset, ICL1501Formatter &formatter)
+{
+    if (!isSSC(offset))
+    {
+        return false;
+    }
+
+    uint8_t byte1 = program_data[offset];
+    uint8_t byte2 = program_data[offset + 1];
+
+    // Extract control and section bits: UVSSS000
+    uint8_t control = (byte2 >> 6) & 0x03;
+    uint8_t section = (byte2 >> 3) & 0x07;
+
+    std::string operands = "S#" + std::to_string(section) + "; C#" + std::to_string(control) + ".";
+    std::string comment = "Set memory section S#" + std::to_string(section) + " and control C#" + std::to_string(control);
+
+    printMemoryControl(addr, byte1, byte2, "SSC,", operands, comment, formatter);
     return true;
 }
 
@@ -910,6 +1046,27 @@ void SimpleICL1501Disassembler::printExitAndBranch(int addr, uint8_t byte1, uint
         comment += " (" + operands + ")";
     }
 
+    formatter.writeComment(comment);
+    formatter.endLine();
+}
+
+void SimpleICL1501Disassembler::printMemoryControl(int addr, uint8_t byte1, uint8_t byte2, const std::string &mnemonic,
+                                                   const std::string &operands, const std::string &comment, ICL1501Formatter &formatter)
+{
+    std::string label = "";
+
+    // Get label for this address if labels are enabled
+    if (use_labels)
+    {
+        label = symbol_table.getLabelAtAddress(addr);
+    }
+
+    formatter.startLine();
+    formatter.writeAddress(addr);
+    formatter.writeBytes(byte1, byte2);
+    formatter.writeLabel(label);
+    formatter.writeVerb(mnemonic);
+    formatter.writeOperands(operands);
     formatter.writeComment(comment);
     formatter.endLine();
 }

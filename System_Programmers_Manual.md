@@ -3841,9 +3841,9 @@ On comparison equal jump +NNNN. On comparison not equal execute next instruction
 **Binary Format**
 
 ```
-7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
-0 0 0 N N N N 0 L L L L L L L L (TLJ+)
-0 0 0 N N N N 1 L L L L L L L L (TLJ−)
+7 6 5 4 3 2 1 0  7 6 5 4 3 2 1 0
+0 0 0 N N N N 0  L L L L L L L L (TLJ+)
+0 0 0 N N N N 1  L L L L L L L L (TLJ−)
 ```
 
 
@@ -3863,9 +3863,9 @@ Mask logical ones are only bits compared.
 **Binary Format**
 
 ```
-     7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
-TMJ+ 0 0 1 N N N N 0 M M M M M M M M
-TMJ- 0 0 1 N N N N 1 M M M M M M M M
+     7 6 5 4 3 2 1 0  7 6 5 4 3 2 1 0
+TMJ+ 0 0 1 N N N N 0  M M M M M M M M
+TMJ- 0 0 1 N N N N 1  M M M M M M M M
 ```
 
 **Notes**  
@@ -3892,9 +3892,9 @@ Mask logical ones are only bits compared.
 **Binary Format**
 
 ```
-    7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
-TLX 0 0 0 0 0 0 0 0 L L L L L L L L
-TMX 0 0 1 0 0 0 0 0 M M M M M M M M
+    7 6 5 4 3 2 1 0  7 6 5 4 3 2 1 0
+TLX 0 0 0 0 0 0 0 0  L L L L L L L L
+TMX 0 0 1 0 0 0 0 0  M M M M M M M M
 ```
 
 **Notes**  
@@ -3928,11 +3928,11 @@ The 11 bits of the direct address replace the least significant 11 bits of the c
 **Binary Format**  
 
 ```
-    7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0  
-BRU 0 1 0 0 0 A A A A A A A A A A 0  
-BRE 0 1 0 0 0 A A A A A A A A A A 1  
-BRH 0 1 0 0 1 A A A A A A A A A A 0  
-BRL 0 1 0 0 1 A A A A A A A A A A 1  
+    7 6 5 4 3 2 1 0  7 6 5 4 3 2 1 0  
+BRU 0 1 0 0 0 A A A  A A A A A A A 0  
+BRE 0 1 0 0 0 A A A  A A A A A A A 1  
+BRH 0 1 0 0 1 A A A  A A A A A A A 0  
+BRL 0 1 0 0 1 A A A  A A A A A A A 1  
 ```
 
 **Notes**  
@@ -3961,11 +3961,11 @@ The condition register is set by a previous Jump or Compare instruction.
 **Binary Format**  
 
 ```
-    7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0  
-SBU 0 1 0 1 0 A A A A A A A A A A 0  
-SBE 0 1 0 1 0 A A A A A A A A A A 1  
-SBH 0 1 0 1 1 A A A A A A A A A A 0  
-SBL 0 1 0 1 1 A A A A A A A A A A 1  
+    7 6 5 4 3 2 1 0  7 6 5 4 3 2 1 0  
+SBU 0 1 0 1 0 A A A  A A A A A A A 0  
+SBE 0 1 0 1 0 A A A  A A A A A A A 1  
+SBH 0 1 0 1 1 A A A  A A A A A A A 0  
+SBL 0 1 0 1 1 A A A  A A A A A A A 1  
 ```
 
 **Notes**  
@@ -3991,9 +3991,9 @@ For EXB the 11 least significant bits of the IAW in that position are replaced b
 **Binary Format**  
 
 ```
-    7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0  
-EXU 0 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0  
-EXB 0 1 1 1 0 A A A A A A A A A A 0  
+    7 6 5 4 3 2 1 0  7 6 5 4 3 2 1 0  
+EXU 0 1 1 0 0 0 0 0  0 0 0 0 0 0 0 0  
+EXB 0 1 1 1 0 A A A  A A A A A A A 0  
 ```
 
 **Notes**  
@@ -4014,8 +4014,8 @@ Provides a means of transferring control from the current section to an outside 
 
 **Binary Format**  
 
-7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0  
-SMS 0 1 1 0 1 0 0 0 0 0 S S S 0 0 0  
+7 6 5 4 3 2 1 0  7 6 5 4 3 2 1 0  
+SMS 0 1 1 0 1 0  0 0 0 0 S S S 0 0 0  
 
 **Notes**  
 1. S is the section bits defining the section that control will be transferred to.
@@ -4043,9 +4043,9 @@ Set memory section and control is a combination of set memory section and set me
 **Binary Format**  
 
 ```
-    7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0  
-SMC 0 1 1 0 1 0 0 0 1 U V 0 0 0 0 0 0  
-SSC 0 1 1 0 1 0 1 0 U V S S S 0 0 0  
+    7 6 5 4 3 2 1 0  7 6 5 4 3 2 1 0  
+SMC 0 1 1 0 1 0 0 1  U V 0 0 0 0 0 0  
+SSC 0 1 1 0 1 0 1 0  U V S S S 0 0 0  
 ```
 
 **Notes**  
@@ -4068,8 +4068,8 @@ Arithmetical conditions of the processor will be forced to a +, −, = condition
 **Binary Format**  
 
 ```
-               7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0  
-SAC            0 1 1 0 1 0 1 1 0 0 0 0 0 0 0 0  
+               7 6 5 4 3 2 1 0  7 6 5 4 3 2 1 0  
+SAC            0 1 1 0 1 0 1 1  0 0 0 0 0 0 0 0  
 
 Acc. (force +) 0 0 0 1 0 0 0 0  
 Acc. (force −) 0 0 0 0 0 0 0 0  
@@ -4091,8 +4091,8 @@ The state of 8 toggle switches (located in the switch well under the CRT screen)
 **Binary Format**  
 
 ```
-    7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0  
-LSW 0 1 1 0 1 1 0 0 0 0 0 0 0 0 0 0
+    7 6 5 4 3 2 1 0  7 6 5 4 3 2 1 0  
+LSW 0 1 1 0 1 1 0 0  0 0 0 0 0 0 0 0
 ```
 
 
@@ -4117,10 +4117,10 @@ The interrupt overflow indicator can be reset by the clear instruction.
 **Binary Format**  
 
 ```
-    7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0  
-DPI 0 1 1 0 1 1 1 0 0 0 0 0 0 0 0 0  
-EPI 0 1 1 0 1 1 1 0 0 0 0 0 0 0 0 1  
-CPI 0 1 1 0 1 1 1 0 0 0 0 0 0 0 1 0
+    7 6 5 4 3 2 1 0  7 6 5 4 3 2 1 0  
+DPI 0 1 1 0 1 1 1 0  0 0 0 0 0 0 0 0  
+EPI 0 1 1 0 1 1 1 0  0 0 0 0 0 0 0 1  
+CPI 0 1 1 0 1 1 1 0  0 0 0 0 0 0 1 0
 ```
 
 **Mnemonic**  
@@ -4138,8 +4138,8 @@ The IWR designates the function to be performed.
 **Binary Format**  
 
 ```
-    7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0  
-IOC 0 1 1 1 1 n n n y y x x x x x x  
+    7 6 5 4 3 2 1 0  7 6 5 4 3 2 1 0  
+IOC 0 1 1 1 1 n n n  y y x x x x x x  
 ```
 
 **Notes**  
@@ -4161,8 +4161,8 @@ Load Processor Status. Execution of this command transfers a hardware status wor
 **Binary Format**  
 
 ```
-    7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0  
-LPS 0 1 1 0 1 1 0 1 0 0 0 0 0 0 0 0  
+    7 6 5 4 3 2 1 0  7 6 5 4 3 2 1 0  
+LPS 0 1 1 0 1 1 0 1  0 0 0 0 0 0 0 0  
 ```
 
 **ACC BIT**  
@@ -4208,13 +4208,13 @@ In indexed addressing modes the specified index register may be automatically in
 **Binary Format**  
 
 ```
-         7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0  
-     LDX 1 0 0 0 0 X X X L L L L L L L L  
-(LA) LDA 1 0 0 0 0 0 0 0 L L L L L L L L  
-(DA) LDA 1 0 0 0 1 0 0 0 A A A A A A A A  
-(IA) LDA 1 0 0 0 1 X X X A A A A A A Y Y  
-(DA) STA 1 0 0 1 1 0 0 0 A A A A A A A A  
-(IA) STA 1 0 0 1 1 X X X A A A A A A Y Y  
+         7 6 5 4 3 2 1 0  7 6 5 4 3 2 1 0  
+     LDX 1 0 0 0 0 X X X  L L L L L L L L  
+(LA) LDA 1 0 0 0 0 0 0 0  L L L L L L L L  
+(DA) LDA 1 0 0 0 1 0 0 0  A A A A A A A A  
+(IA) LDA 1 0 0 0 1 X X X  A A A A A A Y Y  
+(DA) STA 1 0 0 1 1 0 0 0  A A A A A A A A  
+(IA) STA 1 0 0 1 1 X X X  A A A A A A Y Y  
 ```
 
 **Notes**  
@@ -4246,8 +4246,8 @@ If the literal is not 000, then the literal is transferred to the accumulator.
 **Binary Format**  
 
 ```
-    7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0  
-LIA 1 0 0 1 0 X X X L L L L L L L L  
+    7 6 5 4 3 2 1 0  7 6 5 4 3 2 1 0  
+LIA 1 0 0 1 0 X X X  L L L L L L L L  
 ```
 
 **Notes**  
@@ -4281,15 +4281,15 @@ In indexed addressing the specified index register may be automatically incremen
 **Binary Format**  
 
 ```
-         7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0  
-     ADX 1 0 1 0 0 X X X L L L L L L L L  
-(LA) ADA 1 0 1 0 0 0 0 0 L L L L L L L L  
-(DA) ADA 1 0 1 0 1 0 0 0 A A A A A A A A  
-(IA) ADA 1 0 1 0 1 X X X A A A A A A Y Y  
-     SUX 1 0 1 1 0 X X X L L L L L L L L  
-(LA) SUA 1 0 1 1 0 0 0 0 L L L L L L L L  
-(DA) SUA 1 0 1 1 1 0 0 0 A A A A A A A A  
-(IA) SUA 1 0 1 1 1 X X X A A A A A A Y Y  
+         7 6 5 4 3 2 1 0  7 6 5 4 3 2 1 0  
+     ADX 1 0 1 0 0 X X X  L L L L L L L L  
+(LA) ADA 1 0 1 0 0 0 0 0  L L L L L L L L  
+(DA) ADA 1 0 1 0 1 0 0 0  A A A A A A A A  
+(IA) ADA 1 0 1 0 1 X X X  A A A A A A Y Y  
+     SUX 1 0 1 1 0 X X X  L L L L L L L L  
+(LA) SUA 1 0 1 1 0 0 0 0  L L L L L L L L  
+(DA) SUA 1 0 1 1 1 0 0 0  A A A A A A A A  
+(IA) SUA 1 0 1 1 1 X X X  A A A A A A Y Y  
 ```
 
 **Notes**  
@@ -4338,19 +4338,19 @@ Shifts take place prior to logical operation.
 **Binary Format**  
 
 ```
-         7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0  
-(LA) ANA 1 1 0 0 0 0 0 0 L L L L L L L L  
-(DA) ANA 1 1 0 0 1 0 0 0 A A A A A A A A  
-(IA) ANA 1 1 0 0 1 X X X A A A A A A Y Y  
-     SAN 1 1 0 0 0 S S S L L L L L L L L  
-(LA) ERA 1 1 0 1 0 0 0 0 L L L L L L L L  
-(DA) ERA 1 1 0 1 1 0 0 0 A A A A A A A A  
-(IA) ERA 1 1 0 1 1 X X X A A A A A A Y Y  
-     SER 1 1 0 1 0 S S S L L L L L L L L  
-(LA) IRA 1 1 1 0 0 0 0 0 L L L L L L L L  
-(DA) IRA 1 1 1 0 1 0 0 0 A A A A A A A A  
-(IA) IRA 1 1 1 0 1 X X X A A A A A A Y Y  
-     SIR 1 1 1 1 0 S S S L L L L L L L L  
+         7 6 5 4 3 2 1 0  7 6 5 4 3 2 1 0  
+(LA) ANA 1 1 0 0 0 0 0 0  L L L L L L L L  
+(DA) ANA 1 1 0 0 1 0 0 0  A A A A A A A A  
+(IA) ANA 1 1 0 0 1 X X X  A A A A A A Y Y  
+     SAN 1 1 0 0 0 S S S  L L L L L L L L  
+(LA) ERA 1 1 0 1 0 0 0 0  L L L L L L L L  
+(DA) ERA 1 1 0 1 1 0 0 0  A A A A A A A A  
+(IA) ERA 1 1 0 1 1 X X X  A A A A A A Y Y  
+     SER 1 1 0 1 0 S S S  L L L L L L L L  
+(LA) IRA 1 1 1 0 0 0 0 0  L L L L L L L L  
+(DA) IRA 1 1 1 0 1 0 0 0  A A A A A A A A  
+(IA) IRA 1 1 1 0 1 X X X  A A A A A A Y Y  
+     SIR 1 1 1 1 0 S S S  L L L L L L L L  
 ```
 
 **Notes**  

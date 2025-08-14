@@ -4,7 +4,7 @@ This directory contains the ICL-1501 disassembler implementation.
 
 ## Supported Instructions
 
-The disassembler supports all 14 ICL-1501 instruction types:
+The disassembler supports all 17 ICL-1501 instruction types:
 
 ### Branch Instructions
 - **BRU** (Branch Unconditionally) - Format: `01000AAA AAAAAAA0`
@@ -27,6 +27,11 @@ The disassembler supports all 14 ICL-1501 instruction types:
 - **TMX** (Test Mask and Exit) - Format: `00100000 MMMMMMMM`
 - **EXU** (Exit Unconditional) - Format: `01100000 00000000`
 - **EXB** (Exit and Branch) - Format: `01110AAA AAAAAAA0`
+
+### Memory Management Instructions
+- **SMS** (Set Memory Section) - Format: `01101000 000SSS00`
+- **SMC** (Set Memory Control) - Format: `01101001 UV000000`
+- **SSC** (Set Memory Section & Control) - Format: `01101010 UVSSS000`
 
 ## Building
 
@@ -53,31 +58,36 @@ make
 
 ## Complete Instruction Showcase
 
-Here's a comprehensive example demonstrating all 14 supported instruction types:
+Here's a comprehensive example demonstrating all 17 supported instruction types:
 
 ```bash
-./icl1501_disassembler -o "P13-044: 102-000 122-100 142-200 052-100 010-020 030-040 036-025 050-020 000-017 040-310 140-000 160-020" --labels
+./icl1501_disassembler -o "P13-044: 102-000 100-001 110-000 110-001 122-100 120-001 130-200 130-001 052-100 010-020 000-017 040-310 140-000 160-020 150-004 151-100 152-110" --labels
 ```
 
 Output:
 ```
-Simple ICL-1501 Disassembler (BRU/BRE/BRH/BRL/SBU/SBE/SBH/SBL/TLJ/TMJ/TLX/TMX/EXU/EXB instructions)
-=================================================
+Simple ICL-1501 Disassembler (BRU/BRE/BRH/BRL/SBU/SBE/SBH/SBL/TLJ/TMJ/TLX/TMX/EXU/EXB/SMS/SMC/SSC instructions)
+=======================================================
 
 PPP-LLL: MP1-MP2-MP3-MP4. LAB: VERB OPERANDS         COMMENTS
 -------- ---------------- ---- ---- ---------------- --------
 P13-044: 102-000.              BRU, P12; 000.        Branch to P12; 000
-P13-046: 122-100.              SBU, P12; 064.        Stack and branch to P12; 064
-P13-050: 142-200.              SBH, P14; 128.        Stack and branch on high to P14; 128
-P13-052: 052-100.              TMJ, +10; DEC:064.    If mask 0x40, jump +10 (L00)
-P13-054: 010-020.              TLJ, +08; DEC:016.    If 16, jump +8 (L00)
-P13-056: 030-040.              TLJ, +24; DEC:032.    If 32, jump +24
-P13-060: 036-025.              TLJ, +30; DEC:021.    If 21, jump +30
-P13-062: 050-020.              TMJ, +08; DEC:016.    If mask 0x10, jump +8 (L01)
-P13-064: 000-017.         L00: TLX, 000; DEC:015.    Exit if 15
-P13-066: 040-310.         L02: TMX, 000; DEC:200.    Exit if mask 0xC8
-P13-070: 140-000.              EXU, 000.             Exit unconditional (return to stack)
-P13-072: 160-020.         L01: EXB, P10; 016.        Exit and branch to P10; 016
+P13-046: 100-001.              BRE, P10; 000.        Branch on equal to P10; 000
+P13-050: 110-000.              BRH, P10; 000.        Branch on high to P10; 000
+P13-052: 110-001.              BRL, P10; 000.        Branch on low to P10; 000
+P13-054: 122-100.              SBU, P12; 064.        Stack and branch to P12; 064
+P13-056: 120-001.              SBE, P10; 000.        Stack and branch on equal to P10; 000
+P13-060: 130-200.              SBH, P10; 128.        Stack and branch on high to P10; 128
+P13-062: 130-001.              SBL, P10; 000.        Stack and branch on low to P10; 000
+P13-064: 052-100.              TMJ, +10; DEC:064.    If mask 0x40, jump +10 (L00)
+P13-066: 010-020.              TLJ, +08; DEC:016.    If 16, jump +8 (L00)
+P13-070: 000-017.         L01: TLX, 000; DEC:015.    Exit if 15
+P13-072: 040-310.         L02: TMX, 000; DEC:200.    Exit if mask 0xC8
+P13-074: 140-000.              EXU, 000.             Exit unconditional (return to stack)
+P13-076: 160-020.         L00: EXB, P10; 016.        Exit and branch to P10; 016
+P13-100: 150-004.              SMS, S#1.             Set memory section to S#1
+P13-102: 151-100.              SMC, C#1.             Set memory control to C#1 (set V bit, reset U bit)
+P13-104: 152-110.              SSC, S#1; C#1.        Set memory section S#1 and control C#1
 ```
 
 This showcase demonstrates:
@@ -89,6 +99,9 @@ This showcase demonstrates:
 - **TMX**: Test mask and exit/halt
 - **EXU**: Exit unconditional (return to stack)
 - **EXB**: Exit and branch to address
+- **SMS**: Set memory section for branch addressing
+- **SMC**: Set memory control bits (U & V flags)
+- **SSC**: Set memory section and control bits combined
 - **Label generation**: Automatic L00-L02 labels for jump targets
 - **Section addressing**: P13 section with proper address calculation
 

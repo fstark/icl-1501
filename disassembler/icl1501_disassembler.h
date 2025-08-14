@@ -55,6 +55,9 @@ private:
     bool isTMX(int offset);
     bool isEXU(int offset);
     bool isEXB(int offset);
+    bool isSMS(int offset);
+    bool isSMC(int offset);
+    bool isSSC(int offset);
     bool decodeBRU(int addr, int offset, ICL1501Formatter &formatter);
     bool decodeBRE(int addr, int offset, ICL1501Formatter &formatter);
     bool decodeBRH(int addr, int offset, ICL1501Formatter &formatter);
@@ -69,6 +72,9 @@ private:
     bool decodeTMX(int addr, int offset, ICL1501Formatter &formatter);
     bool decodeEXU(int addr, int offset, ICL1501Formatter &formatter);
     bool decodeEXB(int addr, int offset, ICL1501Formatter &formatter);
+    bool decodeSMS(int addr, int offset, ICL1501Formatter &formatter);
+    bool decodeSMC(int addr, int offset, ICL1501Formatter &formatter);
+    bool decodeSSC(int addr, int offset, ICL1501Formatter &formatter);
     void printBranch(int addr, uint8_t byte1, uint8_t byte2, uint8_t page, uint8_t location, const std::string &mnemonic, const std::string &description, ICL1501Formatter &formatter);
     void printStackBranch(int addr, uint8_t byte1, uint8_t byte2, uint8_t page, uint8_t location, const std::string &mnemonic, const std::string &description, ICL1501Formatter &formatter);
     void printJumpInstruction(int addr, uint8_t byte1, uint8_t byte2, const std::string &mnemonic,
@@ -77,6 +83,8 @@ private:
                               const std::string &comment_prefix, ICL1501Formatter &formatter);
     void printExitUnconditional(int addr, uint8_t byte1, uint8_t byte2, ICL1501Formatter &formatter);
     void printExitAndBranch(int addr, uint8_t byte1, uint8_t byte2, uint8_t page, uint8_t location, ICL1501Formatter &formatter);
+    void printMemoryControl(int addr, uint8_t byte1, uint8_t byte2, const std::string &mnemonic,
+                            const std::string &operands, const std::string &comment, ICL1501Formatter &formatter);
     void createJumpLabel(int address, int offset); // Helper for jump label generation
     void printUnknown(int addr, int offset, ICL1501Formatter &formatter);
 

@@ -166,6 +166,31 @@ bool runICL1501DisassemblerTests()
         {"164-000", "P00-000: 164-000.              EXB,  P04; 000.", "EXB to page 4"},
         {"167-374", "P00-000: 167-374.              EXB,  P07; 252.", "EXB to page 7, max location"},
 
+        // SMS tests - Set Memory Section
+        {"150-000", "P00-000: 150-000.              SMS,  S#0.", "SMS set section 0"},
+        {"150-004", "P00-000: 150-004.              SMS,  S#1.", "SMS set section 1"},
+        {"150-010", "P00-000: 150-010.              SMS,  S#2.", "SMS set section 2"},
+        {"150-014", "P00-000: 150-014.              SMS,  S#3.", "SMS set section 3"},
+        {"150-020", "P00-000: 150-020.              SMS,  S#4.", "SMS set section 4"},
+        {"150-024", "P00-000: 150-024.              SMS,  S#5.", "SMS set section 5"},
+        {"150-030", "P00-000: 150-030.              SMS,  S#6.", "SMS set section 6"},
+        {"150-034", "P00-000: 150-034.              SMS,  S#7.", "SMS set section 7"},
+
+        // SMC tests - Set Memory Control
+        {"151-000", "P00-000: 151-000.              SMC,  C#0.", "SMC control 0 (reset U & V bits)"},
+        {"151-100", "P00-000: 151-100.              SMC,  C#1.", "SMC control 1 (set V bit, reset U bit)"},
+        {"151-200", "P00-000: 151-200.              SMC,  C#2.", "SMC control 2 (set U bit, reset V bit)"},
+        {"151-300", "P00-000: 151-300.              SMC,  C#3.", "SMC control 3 (set U & V bits)"},
+
+        // SSC tests - Set Memory Section & Control
+        {"152-000", "P00-000: 152-000.              SSC,  S#0; C#0.", "SSC section 0, control 0"},
+        {"152-010", "P00-000: 152-010.              SSC,  S#1; C#0.", "SSC section 1, control 0"},
+        {"152-100", "P00-000: 152-100.              SSC,  S#0; C#1.", "SSC section 0, control 1"},
+        {"152-110", "P00-000: 152-110.              SSC,  S#1; C#1.", "SSC section 1, control 1"},
+        {"152-200", "P00-000: 152-200.              SSC,  S#0; C#2.", "SSC section 0, control 2"},
+        {"152-300", "P00-000: 152-300.              SSC,  S#0; C#3.", "SSC section 0, control 3"},
+        {"152-370", "P00-000: 152-370.              SSC,  S#7; C#3.", "SSC section 7, control 3"},
+
         // Section-relative addressing tests
         {"P13-000: 115-062", "P13-000: 115-062.              BRH,  P15; 050.", "BRH from section 1 shows P15"},
         {"P27-000: 112-100", "P27-000: 112-100.              BRH,  P22; 064.", "BRH from section 2 shows P22"},
