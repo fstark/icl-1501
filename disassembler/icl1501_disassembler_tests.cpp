@@ -44,6 +44,12 @@ bool SimpleICL1501Disassembler::runTests() {
         {"104-000", "P00-000: 104-000.              BRU,  P04; 000.", "BRU to page 4"},
         {"101-200", "P00-000: 101-200.              BRU,  P01; 128.", "BRU to page 1, location 200 octal"},
         {"107-374", "P00-000: 107-374.              BRU,  P07; 252.", "BRU to page 7, max location"},
+        {"100-001", "P00-000: 100-001.              BRE,  P00; 000.", "Basic BRE to page 0"},
+        {"102-101", "P00-000: 102-101.              BRE,  P02; 064.", "BRE to page 2, location 64"},
+        {"110-000", "P00-000: 110-000.              BRH,  P00; 000.", "Basic BRH to page 0"},
+        {"112-100", "P00-000: 112-100.              BRH,  P02; 064.", "BRH to page 2, location 64"},
+        {"110-001", "P00-000: 110-001.              BRL,  P00; 000.", "Basic BRL to page 0"},
+        {"112-101", "P00-000: 112-101.              BRL,  P02; 064.", "BRL to page 2, location 64"},
     };
     
     int passed = 0;
@@ -77,10 +83,23 @@ bool SimpleICL1501Disassembler::runTests() {
             uint8_t byte1 = program_data[0];
             uint8_t byte2 = program_data[1];
             uint8_t page = byte1 & 0x07;
-            uint8_t location = byte2;
+            uint8_t location = byte2 & 0xFE;  // 7-bit address field (LSB is opcode)
             
             ICL1501Formatter temp_formatter(captured_output);
-            printBRU(start_address, byte1, byte2, page, location, temp_formatter);
+            
+            // Check if it's BRU, BRE, BRH, or BRL and print accordingly
+            if (isBRU(0)) {
+                printBRU(start_address, byte1, byte2, page, location, temp_formatter);
+            } else if (isBRE(0)) {
+                printBranch(start_address, byte1, byte2, page, location, "BRE,", "Branch on Equal to", temp_formatter);
+            } else if (isBRH(0)) {
+                printBranch(start_address, byte1, byte2, page, location, "BRH,", "Branch on High to", temp_formatter);
+            } else if (isBRL(0)) {
+                printBranch(start_address, byte1, byte2, page, location, "BRL,", "Branch on Low to", temp_formatter);
+            } else {
+                // Fallback - should not happen with our test data
+                printBRU(start_address, byte1, byte2, page, location, temp_formatter);
+            }
         }
         
         // Restore cout
@@ -100,6 +119,15 @@ bool SimpleICL1501Disassembler::runTests() {
         
         // Extract just the instruction part (before the comment)
         size_t comment_pos = actual_output.find("Branch to");
+        if (comment_pos == std::string::npos) {
+            comment_pos = actual_output.find("Branch on Equal to");
+        }
+        if (comment_pos == std::string::npos) {
+            comment_pos = actual_output.find("Branch on High to");
+        }
+        if (comment_pos == std::string::npos) {
+            comment_pos = actual_output.find("Branch on Low to");
+        }
         if (comment_pos != std::string::npos) {
             actual_output = actual_output.substr(0, comment_pos);
         }

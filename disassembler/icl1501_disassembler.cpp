@@ -115,12 +115,12 @@ SimpleICL1501Disassembler::SimpleICL1501Disassembler(bool enable_labels)
             int address = start_address;
             int offset = 0;
             while (offset < static_cast<int>(program_data.size()) - 1) {
-                if (isBRU(offset)) {
+                if (isBRU(offset) || isBRE(offset) || isBRH(offset) || isBRL(offset)) {
                     // Extract target address and create label
                     uint8_t byte1 = program_data[offset];
                     uint8_t byte2 = program_data[offset + 1];
                     uint8_t page = byte1 & 0x07;
-                    uint8_t location = byte2;
+                    uint8_t location = byte2 & 0xFE;  // Extract 7-bit address field (LSB is opcode)
                     int target_address = (page * 256) + location;  // Convert to linear address
                     
                     // Only create label if target is within our program range
@@ -144,8 +144,17 @@ SimpleICL1501Disassembler::SimpleICL1501Disassembler(bool enable_labels)
             if (decodeBRU(address, offset, formatter)) {
                 offset += 2; // BRU is 2 bytes
                 address += 2;
+            } else if (decodeBRE(address, offset, formatter)) {
+                offset += 2; // BRE is 2 bytes
+                address += 2;
+            } else if (decodeBRH(address, offset, formatter)) {
+                offset += 2; // BRH is 2 bytes
+                address += 2;
+            } else if (decodeBRL(address, offset, formatter)) {
+                offset += 2; // BRL is 2 bytes
+                address += 2;
             } else {
-                // Not a BRU instruction, just show as data
+                // Not a known branch instruction, just show as data
                 printUnknown(address, offset, formatter);
                 offset += 2;
                 address += 2;
@@ -170,6 +179,42 @@ void SimpleICL1501Disassembler::printHeader() {
         return (byte1 & 0xF8) == 0x40 && (byte2 & 0x01) == 0;
     }
     
+    bool SimpleICL1501Disassembler::isBRE(int offset) {
+        if (offset >= static_cast<int>(program_data.size()) - 1) {
+            return false;
+        }
+        
+        uint8_t byte1 = program_data[offset];
+        uint8_t byte2 = program_data[offset + 1];
+        
+        // BRE binary format: 01000AAA AAAAAAA1
+        return (byte1 & 0xF8) == 0x40 && (byte2 & 0x01) == 1;
+    }
+    
+    bool SimpleICL1501Disassembler::isBRH(int offset) {
+        if (offset >= static_cast<int>(program_data.size()) - 1) {
+            return false;
+        }
+        
+        uint8_t byte1 = program_data[offset];
+        uint8_t byte2 = program_data[offset + 1];
+        
+        // BRH binary format: 01001AAA AAAAAAA0
+        return (byte1 & 0xF8) == 0x48 && (byte2 & 0x01) == 0;
+    }
+    
+    bool SimpleICL1501Disassembler::isBRL(int offset) {
+        if (offset >= static_cast<int>(program_data.size()) - 1) {
+            return false;
+        }
+        
+        uint8_t byte1 = program_data[offset];
+        uint8_t byte2 = program_data[offset + 1];
+        
+        // BRL binary format: 01001AAA AAAAAAA1
+        return (byte1 & 0xF8) == 0x48 && (byte2 & 0x01) == 1;
+    }
+    
     bool SimpleICL1501Disassembler::decodeBRU(int addr, int offset, ICL1501Formatter& formatter) {
         if (!isBRU(offset)) {
             return false;
@@ -180,13 +225,61 @@ void SimpleICL1501Disassembler::printHeader() {
         
         // Extract address bits from both bytes
         uint8_t page = byte1 & 0x07;  // Last 3 bits of first byte
-        uint8_t location = byte2;      // Second byte is the location
+        uint8_t location = byte2 & 0xFE;  // 7-bit address field (LSB is opcode)
         
         printBRU(addr, byte1, byte2, page, location, formatter);
         return true;
     }
     
-    void SimpleICL1501Disassembler::printBRU(int addr, uint8_t byte1, uint8_t byte2, uint8_t page, uint8_t location, ICL1501Formatter& formatter) {
+    bool SimpleICL1501Disassembler::decodeBRE(int addr, int offset, ICL1501Formatter& formatter) {
+        if (!isBRE(offset)) {
+            return false;
+        }
+        
+        uint8_t byte1 = program_data[offset];
+        uint8_t byte2 = program_data[offset + 1];
+        
+        // Extract address bits from both bytes
+        uint8_t page = byte1 & 0x07;  // Last 3 bits of first byte
+        uint8_t location = byte2 & 0xFE;  // 7-bit address field (LSB is opcode)
+        
+        printBranch(addr, byte1, byte2, page, location, "BRE,", "Branch on Equal to", formatter);
+        return true;
+    }
+    
+    bool SimpleICL1501Disassembler::decodeBRH(int addr, int offset, ICL1501Formatter& formatter) {
+        if (!isBRH(offset)) {
+            return false;
+        }
+        
+        uint8_t byte1 = program_data[offset];
+        uint8_t byte2 = program_data[offset + 1];
+        
+        // Extract address bits from both bytes
+        uint8_t page = byte1 & 0x07;  // Last 3 bits of first byte
+        uint8_t location = byte2 & 0xFE;  // 7-bit address field (LSB is opcode)
+        
+        printBranch(addr, byte1, byte2, page, location, "BRH,", "Branch on High to", formatter);
+        return true;
+    }
+    
+    bool SimpleICL1501Disassembler::decodeBRL(int addr, int offset, ICL1501Formatter& formatter) {
+        if (!isBRL(offset)) {
+            return false;
+        }
+        
+        uint8_t byte1 = program_data[offset];
+        uint8_t byte2 = program_data[offset + 1];
+        
+        // Extract address bits from both bytes
+        uint8_t page = byte1 & 0x07;  // Last 3 bits of first byte
+        uint8_t location = byte2 & 0xFE;  // 7-bit address field (LSB is opcode)
+        
+        printBranch(addr, byte1, byte2, page, location, "BRL,", "Branch on Low to", formatter);
+        return true;
+    }
+    
+    void SimpleICL1501Disassembler::printBranch(int addr, uint8_t byte1, uint8_t byte2, uint8_t page, uint8_t location, const std::string& mnemonic, const std::string& description, ICL1501Formatter& formatter) {
         std::string label = "";
         std::string operands;
         
@@ -214,14 +307,14 @@ void SimpleICL1501Disassembler::printHeader() {
             operands = oss.str();
         }
         
-        // Use formatter directly for BRU instruction
+        // Use formatter directly for branch instruction
         int target_address = (page * 256) + location;
         
         formatter.startLine();
         formatter.writeAddress(addr);
         formatter.writeBytes(byte1, byte2);
         formatter.writeLabel(label);
-        formatter.writeVerb("BRU,");
+        formatter.writeVerb(mnemonic);
         formatter.writeOperands(operands + ".");
         
         // Create descriptive comment with target address
@@ -231,7 +324,7 @@ void SimpleICL1501Disassembler::printHeader() {
         target_stream << "P" << std::setfill('0') << std::setw(2) << target_page
                       << "; " << std::setw(3) << target_location;
         
-        std::string comment = "Branch to " + target_stream.str();
+        std::string comment = description + " " + target_stream.str();
         
         // If operands is a label (starts with 'L'), add it in parentheses
         if (!operands.empty() && operands[0] == 'L') {
@@ -240,6 +333,10 @@ void SimpleICL1501Disassembler::printHeader() {
         
         formatter.writeComment(comment);
         formatter.endLine();
+    }
+    
+    void SimpleICL1501Disassembler::printBRU(int addr, uint8_t byte1, uint8_t byte2, uint8_t page, uint8_t location, ICL1501Formatter& formatter) {
+        printBranch(addr, byte1, byte2, page, location, "BRU,", "Branch to", formatter);
     }
     
     void SimpleICL1501Disassembler::printUnknown(int addr, int offset, ICL1501Formatter& formatter) {
@@ -265,7 +362,7 @@ void SimpleICL1501Disassembler::printHeader() {
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
-        std::cout << "Simple ICL-1501 Disassembler (BRU instruction only)" << std::endl;
+        std::cout << "Simple ICL-1501 Disassembler (BRU/BRE/BRH/BRL instructions)" << std::endl;
         std::cout << "Usage:" << std::endl;
         std::cout << "  " << argv[0] << " -o <octal_pairs> [--labels]  - Disassemble from octal pairs (manual format)" << std::endl;
         std::cout << "  " << argv[0] << " -x <hex_string> [--labels]   - Disassemble from hex string" << std::endl;

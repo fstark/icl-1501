@@ -1190,9 +1190,9 @@ P15-044: 106-144.           03-070.       BRU,  P06; 100.    SECTION
 
 |      OBJECT      |          SOURCE            |  
 |------------------|----------------------------|  
-|                  | ; RRR+NNN.                  |  
-| 10X-XYX1         | BRE , Pnn; LLL.             |  
-|                  | ; *+NNN.                    |  
+|                  |     ; RRR±NNN.             |  
+| 10X-XYX1         | BRE , Pnn; LLL.            |  
+|                  |     ; *+NNN.               |  
 
 WHERE: 10X is the command, in which  
 X is the page.  
@@ -1219,11 +1219,11 @@ The conditional branch instruction, branch on equal, is performed when the condi
 
 ```
 PPP-LLL:   MP1-MP2-MP3-MP4.   E SEQ. NO.   LAB:   VERB   OPERANDS     COMMENTS  
-P15-046:   105-051.            03-130.      BRE; IN2.                 WITHIN SECT.  
-P15-050:   150-000.            03-140.      IN2; SMS; S#0.            OUT OF A  
-P15-052:   340-200.            03-150.      CPA; R#0; OCT:200.        SECT. IF  
-P15-054:   106-145.            03-160.      BRE; P06; 100.            EQUAL-ELSE  
-P15-056:   150-010.            03-170.      SMS; S#1.                 RESET SECT.  
+P15-046:   105-051.            03-130.            BRE; IN2.           WITHIN SECT.  
+P15-050:   150-000.            03-140.       IN2: SMS; S#0.           OUT OF A  
+P15-052:   340-200.            03-150.            CPA, R#0; OCT:200.  SECT. IF  
+P15-054:   106-145.            03-160.            BRE, P06; 100.      EQUAL-ELSE  
+P15-056:   150-010.            03-170.            SMS; S#1.           RESET SECT.  
 ```
 
 ---
@@ -1232,9 +1232,9 @@ P15-056:   150-010.            03-170.      SMS; S#1.                 RESET SECT
 
 |      OBJECT      |          SOURCE            |  
 |------------------|----------------------------|  
-|                  | ; RRR+NNN.                  |  
-| 11X-XYX0         | BRH , Pnn; LLL.             |  
-|                  | ; *+NNN.                    |  
+|                  |     ; RRR±NNN.             |  
+| 11X-XYX0         | BRH , Pnn; LLL.            |  
+|                  |     ; *±NNN.               |  
 
 WHERE: 11X is the command, in which  
 X is the page.  
@@ -1261,11 +1261,11 @@ The conditional branch instruction, branch on high, is performed when the condit
 
 ```
 PPP-LLL:   MP1-MP2-MP3-MP4.   E SEQ. NO.   LAB:   VERB   OPERANDS     COMMENTS  
-P15-060:   115-062.            04-030.      BRH; *+02.                WITHIN SECT.  
+P15-060:   115-062.            04-030.           BRH; *+02.                WITHIN SECT.  
 P15-062:   150-000.            04-040.      IN3; SMS; S#0.            OUT OF A  
-P15-064:   340-200.            04-050.      CPA; R#0; OCT:200.        SECT. IF  
-P15-066:   116-144.            04-060.      BRH; P06; 100.            HIGH-ELSE  
-P15-070:   150-010.            04-070.      SMS; S#1.                 RESET SECT.  
+P15-064:   340-200.            04-050.           CPA, R#0; OCT:200.        SECT. IF  
+P15-066:   116-144.            04-060.           BRH, P06; 100.            HIGH-ELSE  
+P15-070:   150-010.            04-070.           SMS; S#1.                 RESET SECT.  
 ```
 
 ---
@@ -1275,9 +1275,9 @@ P15-070:   150-010.            04-070.      SMS; S#1.                 RESET SECT
 
 |      OBJECT      |          SOURCE            |  
 |------------------|----------------------------|  
-|                  | ; RRR+NNN.                  |  
-| 11X-XYX1         | BRL , Pnn; LLL.             |  
-|                  | ; *+NNN.                    |  
+|                  |     ; RRR±NNN.             |  
+| 11X-XYX1         | BRL , Pnn; LLL.            |  
+|                  |     ; *±NNN.               |  
 
 WHERE: 11X is the command, in which  
 X is the page.  
@@ -1306,8 +1306,8 @@ The conditional branch instruction, branch on low, is performed when the conditi
 PPP-LLL:   MP1-MP2-MP3-MP4.   E SEQ. NO.   LAB:   VERB   OPERANDS     COMMENTS  
 P15-072:   115-075.            04-130.           BRL; IN4.            WITHIN SECT.  
 P15-074:   150-000.            04-140.      IN4: SMS; S#0.            OUT OF A  
-P15-076:   340-200.            04-150.           CPA; R#0; OCT:200.   SECT. IF  
-P15-100:   116-145.            04-160.           BRL; P06; 100.       LOW-ELSE  
+P15-076:   340-200.            04-150.           CPA, R#0; OCT:200.   SECT. IF  
+P15-100:   116-145.            04-160.           BRL, P06; 100.       LOW-ELSE  
 P15-102:   150-010.            04-170.           SMS; S#1.            RESET SECT.  
 ```
 

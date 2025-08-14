@@ -2,6 +2,13 @@
 
 This directory contains the ICL-1501 disassembler implementation.
 
+## Supported Instructions
+
+- **BRU** (Branch Unconditionally) - Format: `01000AAA AAAAAAA0`
+- **BRE** (Branch on Equal) - Format: `01001AAA AAAAAAA0`
+- **BRH** (Branch on High) - Format: `01010AAA AAAAAAA0`
+- **BRL** (Branch on Low) - Format: `01011AAA AAAAAAA0`
+
 ## Files
 
 - `icl1501_disassembler.h` - Main disassembler class header
@@ -26,11 +33,11 @@ make
 # Run test suite
 ./icl1501_disassembler --test
 
-# Disassemble from octal pairs
-./icl1501_disassembler -o "102-000 104-006"
+# Disassemble all branch instruction types from octal pairs  
+./icl1501_disassembler -o "102-000 110-004 120-002 130-006"
 
-# Disassemble with labels
-./icl1501_disassembler -o "P01-100: 102-000 101-100" --labels
+# Disassemble with labels for complex branch analysis
+./icl1501_disassembler -o "P01-100: 102-006 110-104 120-102 130-100" --labels
 
 # Show help
 ./icl1501_disassembler

@@ -23,7 +23,14 @@ private:
     
     void printHeader();
     bool isBRU(int offset);
+    bool isBRE(int offset);
+    bool isBRH(int offset);
+    bool isBRL(int offset);
     bool decodeBRU(int addr, int offset, ICL1501Formatter& formatter);
+    bool decodeBRE(int addr, int offset, ICL1501Formatter& formatter);
+    bool decodeBRH(int addr, int offset, ICL1501Formatter& formatter);
+    bool decodeBRL(int addr, int offset, ICL1501Formatter& formatter);
+    void printBranch(int addr, uint8_t byte1, uint8_t byte2, uint8_t page, uint8_t location, const std::string& mnemonic, const std::string& description, ICL1501Formatter& formatter);
     void printBRU(int addr, uint8_t byte1, uint8_t byte2, uint8_t page, uint8_t location, ICL1501Formatter& formatter);
     void printUnknown(int addr, int offset, ICL1501Formatter& formatter);
     
