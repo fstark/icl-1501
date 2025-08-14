@@ -406,7 +406,7 @@ bool SimpleICL1501Disassembler::decodeBRE(int addr, int offset, ICL1501Formatter
     uint8_t page = byte1 & 0x07;     // Last 3 bits of first byte
     uint8_t location = byte2 & 0xFE; // 7-bit address field (LSB is opcode)
 
-    printBranch(addr, byte1, byte2, page, location, "BRE,", "Branch on Equal to", formatter);
+    printBranch(addr, byte1, byte2, page, location, "BRE,", "Branch on equal to", formatter);
     return true;
 }
 
@@ -424,7 +424,7 @@ bool SimpleICL1501Disassembler::decodeBRH(int addr, int offset, ICL1501Formatter
     uint8_t page = byte1 & 0x07;     // Last 3 bits of first byte
     uint8_t location = byte2 & 0xFE; // 7-bit address field (LSB is opcode)
 
-    printBranch(addr, byte1, byte2, page, location, "BRH,", "Branch on High to", formatter);
+    printBranch(addr, byte1, byte2, page, location, "BRH,", "Branch on high to", formatter);
     return true;
 }
 
@@ -442,7 +442,7 @@ bool SimpleICL1501Disassembler::decodeBRL(int addr, int offset, ICL1501Formatter
     uint8_t page = byte1 & 0x07;     // Last 3 bits of first byte
     uint8_t location = byte2 & 0xFE; // 7-bit address field (LSB is opcode)
 
-    printBranch(addr, byte1, byte2, page, location, "BRL,", "Branch on Low to", formatter);
+    printBranch(addr, byte1, byte2, page, location, "BRL,", "Branch on low to", formatter);
     return true;
 }
 
@@ -563,8 +563,16 @@ void SimpleICL1501Disassembler::printJumpInstruction(int addr, uint8_t byte1, ui
     formatter.writeOperands(operands_stream.str());
 
     // Create descriptive comment with target label if available
-    std::string comment = comment_prefix + std::to_string(static_cast<int>(data_byte)) +
-                          ", jump " + direction + std::to_string(jump_bytes);
+    std::string comment;
+    if (mnemonic == "TMJ,") {
+        // For TMJ, display mask in hex format
+        std::ostringstream mask_stream;
+        mask_stream << "0x" << std::hex << std::uppercase << std::setfill('0') << std::setw(2) << static_cast<int>(data_byte);
+        comment = comment_prefix + mask_stream.str() + ", jump " + direction + std::to_string(jump_bytes);
+    } else {
+        // For TLJ, display literal in decimal format
+        comment = comment_prefix + std::to_string(static_cast<int>(data_byte)) + ", jump " + direction + std::to_string(jump_bytes);
+    }
 
     // Add target label to comment if labels are enabled
     if (use_labels)
