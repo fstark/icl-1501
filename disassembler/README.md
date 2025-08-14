@@ -4,7 +4,7 @@ This directory contains the ICL-1501 disassembler implementation.
 
 ## Supported Instructions
 
-The disassembler supports all 12 ICL-1501 instruction types:
+The disassembler supports all 14 ICL-1501 instruction types:
 
 ### Branch Instructions
 - **BRU** (Branch Unconditionally) - Format: `01000AAA AAAAAAA0`
@@ -25,6 +25,8 @@ The disassembler supports all 12 ICL-1501 instruction types:
 ### Exit Instructions
 - **TLX** (Test Literal and Exit) - Format: `00000000 LLLLLLLL` 
 - **TMX** (Test Mask and Exit) - Format: `00100000 MMMMMMMM`
+- **EXU** (Exit Unconditional) - Format: `01100000 00000000`
+- **EXB** (Exit and Branch) - Format: `01110AAA AAAAAAA0`
 
 ## Building
 
@@ -51,29 +53,31 @@ make
 
 ## Complete Instruction Showcase
 
-Here's a comprehensive example demonstrating all 12 supported instruction types:
+Here's a comprehensive example demonstrating all 14 supported instruction types:
 
 ```bash
-./icl1501_disassembler -o "P13-044: 102-000 050-020 122-100 036-025 013-016 051-050 000-017 040-310 130-001 104-046" --labels
+./icl1501_disassembler -o "P13-044: 102-000 122-100 142-200 052-100 010-020 030-040 036-025 050-020 000-017 040-310 140-000 160-020" --labels
 ```
 
 Output:
 ```
-Simple ICL-1501 Disassembler (BRU/BRE/BRH/BRL/SBU/SBE/SBH/SBL/TLJ/TMJ/TLX/TMX instructions)
+Simple ICL-1501 Disassembler (BRU/BRE/BRH/BRL/SBU/SBE/SBH/SBL/TLJ/TMJ/TLX/TMX/EXU/EXB instructions)
 =================================================
 
 PPP-LLL: MP1-MP2-MP3-MP4. LAB: VERB OPERANDS         COMMENTS
 -------- ---------------- ---- ---- ---------------- --------
 P13-044: 102-000.              BRU, P12; 000.        Branch to P12; 000
-P13-046: 050-020.         L01: TMJ, +08; DEC:016.    If mask 0x10, jump +8 (L00)
-P13-050: 122-100.              SBU, P12; 064.        Stack and branch to P12; 064
-P13-052: 036-025.              TLJ, +30; DEC:021.    If 21, jump +30
-P13-054: 013-016.              TLJ, -10; DEC:014.    If 14, jump -10
-P13-056: 051-050.         L00: TMJ, -08; DEC:040.    If mask 0x28, jump -8 (L01)
-P13-060: 000-017.         L02: TLX, 000; DEC:015.    Exit if 15
-P13-062: 040-310.         L03: TMX, 000; DEC:200.    Exit if mask 0xC8
-P13-064: 130-001.              SBL, P10; 000.        Stack and branch on low to P10; 000
-P13-066: 104-046.              BRU, P14; 038.        Branch to P14; 038
+P13-046: 122-100.              SBU, P12; 064.        Stack and branch to P12; 064
+P13-050: 142-200.              SBH, P14; 128.        Stack and branch on high to P14; 128
+P13-052: 052-100.              TMJ, +10; DEC:064.    If mask 0x40, jump +10 (L00)
+P13-054: 010-020.              TLJ, +08; DEC:016.    If 16, jump +8 (L00)
+P13-056: 030-040.              TLJ, +24; DEC:032.    If 32, jump +24
+P13-060: 036-025.              TLJ, +30; DEC:021.    If 21, jump +30
+P13-062: 050-020.              TMJ, +08; DEC:016.    If mask 0x10, jump +8 (L01)
+P13-064: 000-017.         L00: TLX, 000; DEC:015.    Exit if 15
+P13-066: 040-310.         L02: TMX, 000; DEC:200.    Exit if mask 0xC8
+P13-070: 140-000.              EXU, 000.             Exit unconditional (return to stack)
+P13-072: 160-020.         L01: EXB, P10; 016.        Exit and branch to P10; 016
 ```
 
 This showcase demonstrates:
@@ -83,7 +87,9 @@ This showcase demonstrates:
 - **TMJ**: Test mask and conditional jump (forward/backward)
 - **TLX**: Test literal and exit/halt
 - **TMX**: Test mask and exit/halt
-- **Label generation**: Automatic L00-L03 labels for jump targets
+- **EXU**: Exit unconditional (return to stack)
+- **EXB**: Exit and branch to address
+- **Label generation**: Automatic L00-L02 labels for jump targets
 - **Section addressing**: P13 section with proper address calculation
 
 ## Architecture

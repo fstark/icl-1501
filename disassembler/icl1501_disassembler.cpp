@@ -166,7 +166,8 @@ std::vector<std::string> SimpleICL1501Disassembler::disassemble(std::span<const 
         while (offset < static_cast<int>(program_data.size()) - 1)
         {
             if (isBRU(offset) || isBRE(offset) || isBRH(offset) || isBRL(offset) ||
-                isSBU(offset) || isSBE(offset) || isSBH(offset) || isSBL(offset))
+                isSBU(offset) || isSBE(offset) || isSBH(offset) || isSBL(offset) ||
+                isEXB(offset))
             {
                 // Extract target address and create label
                 uint8_t byte1 = program_data[offset];
@@ -212,7 +213,17 @@ std::vector<std::string> SimpleICL1501Disassembler::disassemble(std::span<const 
     int offset = 0;
     while (offset < static_cast<int>(program_data.size()) - 1)
     {
-        if (decodeTLX(address, offset, formatter))
+        if (decodeEXU(address, offset, formatter))
+        {
+            offset += 2; // EXU is 2 bytes
+            address += 2;
+        }
+        else if (decodeEXB(address, offset, formatter))
+        {
+            offset += 2; // EXB is 2 bytes
+            address += 2;
+        }
+        else if (decodeTLX(address, offset, formatter))
         {
             offset += 2; // TLX is 2 bytes
             address += 2;
@@ -447,6 +458,26 @@ bool SimpleICL1501Disassembler::isTMX(int offset)
     return byte1 == 0x20;
 }
 
+bool SimpleICL1501Disassembler::isEXU(int offset)
+{
+    if (offset >= static_cast<int>(program_data.size()) - 1)
+    {
+        return false;
+    }
+
+    uint8_t byte1 = program_data[offset];
+    uint8_t byte2 = program_data[offset + 1];
+
+    // EXU binary format: 01100000 00000000 (140-000 in octal)
+    // Both bytes must be exactly as specified
+    return byte1 == 0x60 && byte2 == 0x00;
+}
+
+bool SimpleICL1501Disassembler::isEXB(int offset)
+{
+    return isBranchInstruction(offset, 0x70, 0);
+}
+
 bool SimpleICL1501Disassembler::decodeBRU(int addr, int offset, ICL1501Formatter &formatter)
 {
     return isBRU(offset) && decodeBranchInstruction(addr, offset, formatter, "BRU,", "Branch to");
@@ -557,6 +588,38 @@ bool SimpleICL1501Disassembler::decodeTMX(int addr, int offset, ICL1501Formatter
 
     // TMX is like TMJ but with jump count = 0 (exit/halt)
     printExitInstruction(addr, byte1, byte2, "TMX,", "Exit if mask ", formatter);
+    return true;
+}
+
+bool SimpleICL1501Disassembler::decodeEXU(int addr, int offset, ICL1501Formatter &formatter)
+{
+    if (!isEXU(offset))
+    {
+        return false;
+    }
+
+    uint8_t byte1 = program_data[offset];
+    uint8_t byte2 = program_data[offset + 1];
+
+    printExitUnconditional(addr, byte1, byte2, formatter);
+    return true;
+}
+
+bool SimpleICL1501Disassembler::decodeEXB(int addr, int offset, ICL1501Formatter &formatter)
+{
+    if (!isEXB(offset))
+    {
+        return false;
+    }
+
+    uint8_t byte1 = program_data[offset];
+    uint8_t byte2 = program_data[offset + 1];
+
+    // Extract address bits from both bytes (same as branch instructions)
+    uint8_t page = byte1 & 0x07;     // Last 3 bits of first byte
+    uint8_t location = byte2 & 0xFE; // 7-bit address field (LSB is opcode)
+
+    printExitAndBranch(addr, byte1, byte2, page, location, formatter);
     return true;
 }
 
@@ -778,6 +841,79 @@ void SimpleICL1501Disassembler::printExitInstruction(int addr, uint8_t byte1, ui
     formatter.endLine();
 }
 
+void SimpleICL1501Disassembler::printExitUnconditional(int addr, uint8_t byte1, uint8_t byte2, ICL1501Formatter &formatter)
+{
+    std::string label = "";
+    if (use_labels)
+    {
+        label = symbol_table.getLabelAtAddress(addr);
+    }
+
+    formatter.startLine();
+    formatter.writeAddress(addr);
+    formatter.writeBytes(byte1, byte2);
+    formatter.writeLabel(label);
+    formatter.writeVerb("EXU,");
+    formatter.writeOperands("000.");
+    formatter.writeComment("Exit unconditional (return to stack)");
+    formatter.endLine();
+}
+
+void SimpleICL1501Disassembler::printExitAndBranch(int addr, uint8_t byte1, uint8_t byte2, uint8_t page, uint8_t location, ICL1501Formatter &formatter)
+{
+    std::string label = "";
+    std::string operands;
+
+    // Get label for this address if labels are enabled
+    if (use_labels)
+    {
+        label = symbol_table.getLabelAtAddress(addr);
+    }
+
+    // Determine operands - use label for target if available, otherwise use page/location
+    if (use_labels)
+    {
+        int target_address = (page * 256) + location;
+        std::string target_label = symbol_table.getLabelAtAddress(target_address);
+        if (!target_label.empty())
+        {
+            operands = target_label;
+        }
+        else
+        {
+            operands = formatSectionRelativeAddress(target_address, addr);
+        }
+    }
+    else
+    {
+        int target_address = (page * 256) + location;
+        operands = formatSectionRelativeAddress(target_address, addr);
+    }
+
+    // Use formatter directly for exit-and-branch instruction
+    int target_address = (page * 256) + location;
+
+    formatter.startLine();
+    formatter.writeAddress(addr);
+    formatter.writeBytes(byte1, byte2);
+    formatter.writeLabel(label);
+    formatter.writeVerb("EXB,");
+    formatter.writeOperands(operands + ".");
+
+    // Create descriptive comment with target address
+    std::string target_addr_str = formatSectionRelativeAddress(target_address, addr);
+    std::string comment = "Exit and branch to " + target_addr_str;
+
+    // If operands is a label (starts with 'L'), add it in parentheses
+    if (!operands.empty() && operands[0] == 'L')
+    {
+        comment += " (" + operands + ")";
+    }
+
+    formatter.writeComment(comment);
+    formatter.endLine();
+}
+
 void SimpleICL1501Disassembler::createJumpLabel(int address, int offset)
 {
     uint8_t byte1 = program_data[offset];
@@ -823,7 +959,7 @@ int main(int argc, char *argv[])
 {
     if (argc < 2)
     {
-        std::cout << "Simple ICL-1501 Disassembler (BRU/BRE/BRH/BRL/SBU/SBE/SBH/SBL/TLJ/TMJ/TLX/TMX instructions)" << std::endl;
+        std::cout << "Simple ICL-1501 Disassembler (BRU/BRE/BRH/BRL/SBU/SBE/SBH/SBL/TLJ/TMJ/TLX/TMX/EXU/EXB instructions)" << std::endl;
         std::cout << "Usage:" << std::endl;
         std::cout << "  " << argv[0] << " -o <octal_pairs> [--labels]  - Disassemble from octal pairs (manual format)" << std::endl;
         std::cout << "  " << argv[0] << " -x <hex_string> [--labels]   - Disassemble from hex string" << std::endl;

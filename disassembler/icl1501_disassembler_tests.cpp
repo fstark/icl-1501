@@ -159,6 +159,13 @@ bool runICL1501DisassemblerTests()
         {"040-240", "P00-000: 040-240.              TMX,  000; DEC:160.", "TMX exit with mask 240"},
         {"040-377", "P00-000: 040-377.              TMX,  000; DEC:255.", "TMX exit with maximum mask"},
 
+        // EXU/EXB tests - Exit instructions
+        {"140-000", "P00-000: 140-000.              EXU,  000.", "EXU exit unconditional (return to stack)"},
+        {"160-000", "P00-000: 160-000.              EXB,  P00; 000.", "Basic EXB to page 0"},
+        {"162-100", "P00-000: 162-100.              EXB,  P02; 064.", "EXB to page 2, location 64"},
+        {"164-000", "P00-000: 164-000.              EXB,  P04; 000.", "EXB to page 4"},
+        {"167-374", "P00-000: 167-374.              EXB,  P07; 252.", "EXB to page 7, max location"},
+
         // Section-relative addressing tests
         {"P13-000: 115-062", "P13-000: 115-062.              BRH,  P15; 050.", "BRH from section 1 shows P15"},
         {"P27-000: 112-100", "P27-000: 112-100.              BRH,  P22; 064.", "BRH from section 2 shows P22"},

@@ -5,7 +5,7 @@ ICL1501Formatter::ICL1501Formatter(std::ostream &os) : output_stream(&os) {}
 void ICL1501Formatter::printHeader()
 {
 	*output_stream << std::endl;
-	*output_stream << "Simple ICL-1501 Disassembler (BRU/BRE/BRH/BRL/SBU/SBE/SBH/SBL/TLJ/TMJ/TLX/TMX instructions)" << std::endl;
+	*output_stream << "Simple ICL-1501 Disassembler (BRU/BRE/BRH/BRL/SBU/SBE/SBH/SBL/TLJ/TMJ/TLX/TMX/EXU/EXB instructions)" << std::endl;
 	*output_stream << "=================================================" << std::endl;
 	*output_stream << std::endl;
 
