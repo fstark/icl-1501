@@ -238,6 +238,36 @@ std::vector<std::string> SimpleICL1501Disassembler::disassemble(std::span<const 
             offset += 2; // SSC is 2 bytes
             address += 2;
         }
+        else if (decodeSAC(address, offset, formatter))
+        {
+            offset += 2; // SAC is 2 bytes
+            address += 2;
+        }
+        else if (decodeLSW(address, offset, formatter))
+        {
+            offset += 2; // LSW is 2 bytes
+            address += 2;
+        }
+        else if (decodeLPS(address, offset, formatter))
+        {
+            offset += 2; // LPS is 2 bytes
+            address += 2;
+        }
+        else if (decodeDPI(address, offset, formatter))
+        {
+            offset += 2; // DPI is 2 bytes
+            address += 2;
+        }
+        else if (decodeEPI(address, offset, formatter))
+        {
+            offset += 2; // EPI is 2 bytes
+            address += 2;
+        }
+        else if (decodeCPI(address, offset, formatter))
+        {
+            offset += 2; // CPI is 2 bytes
+            address += 2;
+        }
         else if (decodeTLX(address, offset, formatter))
         {
             offset += 2; // TLX is 2 bytes
@@ -538,6 +568,69 @@ bool SimpleICL1501Disassembler::isSSC(int offset)
     return byte1 == 0x6A && (byte2 & 0x07) == 0x00;
 }
 
+// Helper function for simple control instructions (15X-000 pattern)
+bool SimpleICL1501Disassembler::isSimpleControlInstruction(int offset, uint8_t instruction_id)
+{
+    if (offset >= static_cast<int>(program_data.size()) - 1)
+    {
+        return false;
+    }
+
+    uint8_t byte1 = program_data[offset];
+    uint8_t byte2 = program_data[offset + 1];
+
+    // Simple control format: 01101BXX 00000000 (15X-000 in octal)
+    // byte1: 01101 + 3-bit instruction_id, byte2 must be 0x00
+    uint8_t expected_byte1 = 0x68 | instruction_id; // 0x68 = 01101000, add 3-bit ID
+    return byte1 == expected_byte1 && byte2 == 0x00;
+}
+
+bool SimpleICL1501Disassembler::isSAC(int offset)
+{
+    return isSimpleControlInstruction(offset, 0x03); // 153-000
+}
+
+bool SimpleICL1501Disassembler::isLSW(int offset)
+{
+    return isSimpleControlInstruction(offset, 0x04); // 154-000
+}
+
+bool SimpleICL1501Disassembler::isLPS(int offset)
+{
+    return isSimpleControlInstruction(offset, 0x05); // 155-000
+}
+
+// Helper function for interrupt control instructions (156-00X pattern)
+bool SimpleICL1501Disassembler::isInterruptControlInstruction(int offset, uint8_t function_code)
+{
+    if (offset >= static_cast<int>(program_data.size()) - 1)
+    {
+        return false;
+    }
+
+    uint8_t byte1 = program_data[offset];
+    uint8_t byte2 = program_data[offset + 1];
+
+    // Interrupt control format: 01101110 0000X00X (156-00X in octal)
+    // byte1 must be 0x6E (01101110), byte2 format: 0000X00X where X bits form function_code
+    return byte1 == 0x6E && byte2 == function_code;
+}
+
+bool SimpleICL1501Disassembler::isDPI(int offset)
+{
+    return isInterruptControlInstruction(offset, 0x00); // 156-000
+}
+
+bool SimpleICL1501Disassembler::isEPI(int offset)
+{
+    return isInterruptControlInstruction(offset, 0x01); // 156-001
+}
+
+bool SimpleICL1501Disassembler::isCPI(int offset)
+{
+    return isInterruptControlInstruction(offset, 0x02); // 156-002
+}
+
 bool SimpleICL1501Disassembler::decodeBRU(int addr, int offset, ICL1501Formatter &formatter)
 {
     return isBRU(offset) && decodeBranchInstruction(addr, offset, formatter, "BRU,", "Branch to");
@@ -756,6 +849,114 @@ bool SimpleICL1501Disassembler::decodeSSC(int addr, int offset, ICL1501Formatter
     std::string comment = "Set memory section S#" + std::to_string(section) + " and control C#" + std::to_string(control);
 
     printMemoryControl(addr, byte1, byte2, "SSC,", operands, comment, formatter);
+    return true;
+}
+
+// Helper function to reduce duplication in simple control instruction decoding
+void SimpleICL1501Disassembler::printSimpleControl(int addr, uint8_t byte1, uint8_t byte2, 
+                                                   const std::string &mnemonic, 
+                                                   const std::string &comment, 
+                                                   ICL1501Formatter &formatter)
+{
+    std::string label = "";
+
+    // Get label for this address if labels are enabled
+    if (use_labels)
+    {
+        label = symbol_table.getLabelAtAddress(addr);
+    }
+
+    formatter.startLine();
+    formatter.writeAddress(addr);
+    formatter.writeBytes(byte1, byte2);
+    formatter.writeLabel(label);
+    formatter.writeVerb(mnemonic);
+    formatter.writeOperands("000.");
+    formatter.writeComment(comment);
+    formatter.endLine();
+}
+
+bool SimpleICL1501Disassembler::decodeSAC(int addr, int offset, ICL1501Formatter &formatter)
+{
+    if (!isSAC(offset))
+    {
+        return false;
+    }
+
+    uint8_t byte1 = program_data[offset];
+    uint8_t byte2 = program_data[offset + 1];
+
+    printSimpleControl(addr, byte1, byte2, "SAC,", "Set arithmetic condition from ACC bits 4-5", formatter);
+    return true;
+}
+
+bool SimpleICL1501Disassembler::decodeLSW(int addr, int offset, ICL1501Formatter &formatter)
+{
+    if (!isLSW(offset))
+    {
+        return false;
+    }
+
+    uint8_t byte1 = program_data[offset];
+    uint8_t byte2 = program_data[offset + 1];
+
+    printSimpleControl(addr, byte1, byte2, "LSW,", "Load sense switches to accumulator", formatter);
+    return true;
+}
+
+bool SimpleICL1501Disassembler::decodeLPS(int addr, int offset, ICL1501Formatter &formatter)
+{
+    if (!isLPS(offset))
+    {
+        return false;
+    }
+
+    uint8_t byte1 = program_data[offset];
+    uint8_t byte2 = program_data[offset + 1];
+
+    printSimpleControl(addr, byte1, byte2, "LPS,", "Load processor status word to accumulator", formatter);
+    return true;
+}
+
+bool SimpleICL1501Disassembler::decodeDPI(int addr, int offset, ICL1501Formatter &formatter)
+{
+    if (!isDPI(offset))
+    {
+        return false;
+    }
+
+    uint8_t byte1 = program_data[offset];
+    uint8_t byte2 = program_data[offset + 1];
+
+    printSimpleControl(addr, byte1, byte2, "DPI,", "Disable processor interrupt", formatter);
+    return true;
+}
+
+bool SimpleICL1501Disassembler::decodeEPI(int addr, int offset, ICL1501Formatter &formatter)
+{
+    if (!isEPI(offset))
+    {
+        return false;
+    }
+
+    uint8_t byte1 = program_data[offset];
+    uint8_t byte2 = program_data[offset + 1];
+
+    printSimpleControl(addr, byte1, byte2, "EPI,", "Enable processor interrupt", formatter);
+    return true;
+}
+
+bool SimpleICL1501Disassembler::decodeCPI(int addr, int offset, ICL1501Formatter &formatter)
+{
+    if (!isCPI(offset))
+    {
+        return false;
+    }
+
+    uint8_t byte1 = program_data[offset];
+    uint8_t byte2 = program_data[offset + 1];
+
+    printSimpleControl(addr, byte1, byte2, "CPI,", "Clear processor interrupt overflow", formatter);
     return true;
 }
 
@@ -1116,7 +1317,7 @@ int main(int argc, char *argv[])
 {
     if (argc < 2)
     {
-        std::cout << "Simple ICL-1501 Disassembler (BRU/BRE/BRH/BRL/SBU/SBE/SBH/SBL/TLJ/TMJ/TLX/TMX/EXU/EXB instructions)" << std::endl;
+        std::cout << "Simple ICL-1501 Disassembler (BRU/BRE/BRH/BRL/SBU/SBE/SBH/SBL/TLJ/TMJ/TLX/TMX/EXU/EXB/SMS/SMC/SSC/SAC/LSW/LPS/DPI/EPI/CPI instructions)" << std::endl;
         std::cout << "Usage:" << std::endl;
         std::cout << "  " << argv[0] << " -o <octal_pairs> [--labels]  - Disassemble from octal pairs (manual format)" << std::endl;
         std::cout << "  " << argv[0] << " -x <hex_string> [--labels]   - Disassemble from hex string" << std::endl;

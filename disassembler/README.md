@@ -4,7 +4,7 @@ This directory contains the ICL-1501 disassembler implementation.
 
 ## Supported Instructions
 
-The disassembler supports all 17 ICL-1501 instruction types:
+The disassembler supports 23 ICL-1501 instruction types:
 
 ### Branch Instructions
 - **BRU** (Branch Unconditionally) - Format: `01000AAA AAAAAAA0`
@@ -33,6 +33,16 @@ The disassembler supports all 17 ICL-1501 instruction types:
 - **SMC** (Set Memory Control) - Format: `01101001 UV000000`
 - **SSC** (Set Memory Section & Control) - Format: `01101010 UVSSS000`
 
+### Control Instructions
+- **SAC** (Set Arithmetic Condition) - Format: `01101011 00000000`
+- **LSW** (Load Sense Switches) - Format: `01101100 00000000`
+- **LPS** (Load Processor Status) - Format: `01101101 00000000`
+
+### Interrupt Control Instructions
+- **DPI** (Disable Processor Interrupt) - Format: `01101110 00000000`
+- **EPI** (Enable Processor Interrupt) - Format: `01101110 00000001`
+- **CPI** (Clear Processor Interrupt) - Format: `01101110 00000010`
+
 ## Building
 
 ```bash
@@ -58,16 +68,16 @@ make
 
 ## Complete Instruction Showcase
 
-Here's a comprehensive example demonstrating all 17 supported instruction types:
+Here's a comprehensive example demonstrating all 23 supported instruction types:
 
 ```bash
-./icl1501_disassembler -o "P13-044: 102-000 100-001 110-000 110-001 122-100 120-001 130-200 130-001 052-100 010-020 000-017 040-310 140-000 160-020 150-004 151-100 152-110" --labels
+./icl1501_disassembler -o "P13-044: 102-000 100-001 110-000 110-001 122-100 120-001 130-200 130-001 052-100 010-020 000-017 040-310 140-000 160-020 150-004 151-100 152-110 153-000 154-000 155-000 156-000 156-001 156-002" --labels
 ```
 
 Output:
 ```
-Simple ICL-1501 Disassembler (BRU/BRE/BRH/BRL/SBU/SBE/SBH/SBL/TLJ/TMJ/TLX/TMX/EXU/EXB/SMS/SMC/SSC instructions)
-=======================================================
+Simple ICL-1501 Disassembler (BRU/BRE/BRH/BRL/SBU/SBE/SBH/SBL/TLJ/TMJ/TLX/TMX/EXU/EXB/SMS/SMC/SSC/SAC/LSW/LPS/DPI/EPI/CPI instructions)
+=================================================
 
 PPP-LLL: MP1-MP2-MP3-MP4. LAB: VERB OPERANDS         COMMENTS
 -------- ---------------- ---- ---- ---------------- --------
@@ -88,6 +98,12 @@ P13-076: 160-020.         L00: EXB, P10; 016.        Exit and branch to P10; 016
 P13-100: 150-004.              SMS, S#1.             Set memory section to S#1
 P13-102: 151-100.              SMC, C#1.             Set memory control to C#1 (set V bit, reset U bit)
 P13-104: 152-110.              SSC, S#1; C#1.        Set memory section S#1 and control C#1
+P13-106: 153-000.              SAC, 000.             Set arithmetic condition from ACC bits 4-5
+P13-110: 154-000.              LSW, 000.             Load sense switches to accumulator
+P13-112: 155-000.              LPS, 000.             Load processor status word to accumulator
+P13-114: 156-000.              DPI, 000.             Disable processor interrupt
+P13-116: 156-001.              EPI, 000.             Enable processor interrupt
+P13-120: 156-002.              CPI, 000.             Clear processor interrupt overflow
 ```
 
 This showcase demonstrates:
@@ -102,6 +118,12 @@ This showcase demonstrates:
 - **SMS**: Set memory section for branch addressing
 - **SMC**: Set memory control bits (U & V flags)
 - **SSC**: Set memory section and control bits combined
+- **SAC**: Set arithmetic condition from accumulator bits
+- **LSW**: Load sense switches to accumulator
+- **LPS**: Load processor status word to accumulator
+- **DPI**: Disable processor interrupt handling
+- **EPI**: Enable processor interrupt handling  
+- **CPI**: Clear processor interrupt overflow flag
 - **Label generation**: Automatic L00-L02 labels for jump targets
 - **Section addressing**: P13 section with proper address calculation
 

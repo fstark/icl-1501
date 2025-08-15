@@ -191,6 +191,16 @@ bool runICL1501DisassemblerTests()
         {"152-300", "P00-000: 152-300.              SSC,  S#0; C#3.", "SSC section 0, control 3"},
         {"152-370", "P00-000: 152-370.              SSC,  S#7; C#3.", "SSC section 7, control 3"},
 
+        // Group 1 simple control instructions
+        {"153-000", "P00-000: 153-000.              SAC,  000.", "SAC - Set arithmetic condition"},
+        {"154-000", "P00-000: 154-000.              LSW,  000.", "LSW - Load sense switches"},
+        {"155-000", "P00-000: 155-000.              LPS,  000.", "LPS - Load processor status"},
+
+        // Group 2 interrupt control instructions
+        {"156-000", "P00-000: 156-000.              DPI,  000.", "DPI - Disable processor interrupt"},
+        {"156-001", "P00-000: 156-001.              EPI,  000.", "EPI - Enable processor interrupt"},
+        {"156-002", "P00-000: 156-002.              CPI,  000.", "CPI - Clear processor interrupt"},
+
         // Section-relative addressing tests
         {"P13-000: 115-062", "P13-000: 115-062.              BRH,  P15; 050.", "BRH from section 1 shows P15"},
         {"P27-000: 112-100", "P27-000: 112-100.              BRH,  P22; 064.", "BRH from section 2 shows P22"},
