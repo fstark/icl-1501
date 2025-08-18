@@ -51,5 +51,6 @@
 		"variant": "cpp",
 		"vector": "cpp",
 		"cstddef": "cpp"
-	}
+	},
+	"editor.formatOnSave": false
 }
