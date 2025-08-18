@@ -1032,6 +1032,12 @@ P15-004:   006-015.            01-140.      TLJ, +06; DEC:013.         EQUAL
 P15-006:   004-017.            01-150.      TLJ, +04; HEX:0F.
 ```
 
+#### FReD's NOTES
+
+TLJ is both TLJ+ and TLJ-, based on the last bit of byte 1.
+Displacement has to be multiplied by 2 (or take the last 5 bits and force the last one to 0)
+TLJ with an offset of 0 does not exists and is TLX (Test Litteral and Exit)
+
 ---
 
 
@@ -1078,6 +1084,11 @@ P15-010:   050-016.            02-010.      TMJ, +08; OCT:016.        JUMP IF
 P15-012:   051-050.            02-020.      TMJ, -08; DEC:040.        MASK IS  
 P15-014:   076-377.            02-030.      TMJ, +30; HEX:FF.         EQUAL  
 ```
+
+#### FReD's NOTES
+
+Identical to TLJ, but with a mask.
+
 ---
 
 ### DPL-1 -- CLASS 0: JUMP -- TEST LITERAL AND EXIT -- TLX  
@@ -1130,6 +1141,10 @@ P15-022:   000-016.            02-110.      TLX, 000; DEC:014.         EQUAL
 P15-024:   000-377.            02-120.      TLX, 000; HEX:FF.  
 ```
 
+#### FReD's NOTES
+
+A "subcase" of TLJ with 0 offset.
+
 ---
 
 ### DPL-1 -- CLASS 0: JUMP -- TEST MASK AND EXIT -- TMX  
@@ -1164,6 +1179,10 @@ P15-026:   040-010.            02-180.      TMX, 000; OCT:010.         EXIT IF
 P15-030:   040-310.            02-190.      TMX, 000; DEC:200.         MASK IS  
 P15-032:   040-240.            02-200.      TMX, 000; HEX:A0.          EQUAL  
 ```
+
+#### FReD's NOTES
+
+A "subcase" of TLJ with 0 offset.
 
 ---
 ## 3. CLASS 1: BRANCH
@@ -1218,6 +1237,11 @@ P15-044: 106-144.           03-070.       BRU,  P06; 100.    SECTION
 
 (note: instruction P15-040 corrected from source)
 
+#### FReD's NOTES
+
+Beware of the descrition: int "01X" the "0" and "1" are octal, so it really is: "00 001 XXX".
+As the last bit of byte two is 0, the target address is really the last 3 of byte one and the 8 of byte two.
+
 ---
 
 ### DPL-1 -- CLASS 1: BRANCH -- BRANCH ON EQUAL -- BRE  
@@ -1259,6 +1283,10 @@ P15-052:   340-200.            03-150.            CPA, R#0; OCT:200.  SECT. IF
 P15-054:   106-145.            03-160.            BRE, P06; 100.      EQUAL-ELSE  
 P15-056:   150-010.            03-170.            SMS; S#1.           RESET SECT.  
 ```
+
+#### FReD's NOTES:
+
+BRE is similar to BRU, but as the last bit of second byte is one, the address should be (byte1&0x7)<<8 + (byte2&0xfe)
 
 ---
 
@@ -1302,6 +1330,10 @@ P15-066:   116-144.            04-060.           BRH, P06; 100.            HIGH-
 P15-070:   150-010.            04-070.           SMS; S#1.                 RESET SECT.  
 ```
 
+#### FReD's NOTES:
+
+All branching are very similar.
+
 ---
 
 ### DPL-1 -- CLASS 1: BRANCH -- BRANCH ON LOW -- BRL  
@@ -1344,6 +1376,10 @@ P15-076:   340-200.            04-150.           CPA, R#0; OCT:200.   SECT. IF
 P15-100:   116-145.            04-160.           BRL, P06; 100.       LOW-ELSE  
 P15-102:   150-010.            04-170.           SMS; S#1.            RESET SECT.  
 ```
+
+#### FReD's NOTES:
+
+All branching are very similar.
 
 ---
 
@@ -1881,10 +1917,10 @@ By execution of a Clear Interrupt instruction, the interrupt overflow indicator 
 |------------------|----------------------------|  
 | 200-LLL          | LDA, R#0; Literal.          |  
 | 210-YXX          | LDA, R#0; AAA+NNN.          |  
-| 211-YXZ0         | LDA, R#X; PPP.               |  
-| 211-YXZ1 0       | LDA, I#X; PPP.               |  
-| 211-YXZ1 1       | LDA, D#X; PPP.               |  
-| 211-YXZ0p        | LDA, R#X; AAA+NNN.           |  
+| 21I-YXZ0         | LDA, R#X; PPP.               |  
+| 21I-YXZ1 0       | LDA, I#X; PPP.               |  
+| 21I-YXZ1 1       | LDA, D#X; PPP.               |  
+| 21I-YXZ0p        | LDA, R#X; AAA+NNN.           |  
 
 WHERE:  
 - 200 is an immediate address command.  
@@ -2007,6 +2043,10 @@ P16-004:   125-114.             13-050.         SBU;  MTR.
 P16-006:   354-002.             13-060.    SBI: CPA,  I#4; P00.       PAGE CHANGED  
                                *13-070.                               AT OBJECT-TIME
 ```
+
+#### FReD's NOTES
+
+Fundamentally LIA serves for the code to know the content of the "instruction pointer" (even if there is no such explicit thing in the icl1501), and enable things like accessing data assembled with the code. By default it only gives the offset within the page because indexing will probably be local, so they piggy backed a way to load a value in the accumulator (probably preparing the "access the data 6 bytes after this instruction that would follow). In such context, loading 0 in the accumulator serves no purpose (as it would load the opcode of the current instruction), so they added that if the second byte is 0, it will load the section and page number in the accumulator, enabling the use case where you need to create a "far" pointer to your current code to pass to some routine somewhere.
 
 ---
 

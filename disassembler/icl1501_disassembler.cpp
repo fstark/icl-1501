@@ -268,6 +268,11 @@ std::vector<std::string> SimpleICL1501Disassembler::disassemble(std::span<const 
             offset += 2; // CPI is 2 bytes
             address += 2;
         }
+        else if (decodeIOC(address, offset, formatter))
+        {
+            offset += 2; // IOC is 2 bytes
+            address += 2;
+        }
         else if (decodeTLX(address, offset, formatter))
         {
             offset += 2; // TLX is 2 bytes
@@ -631,6 +636,20 @@ bool SimpleICL1501Disassembler::isCPI(int offset)
     return isInterruptControlInstruction(offset, 0x02); // 156-002
 }
 
+bool SimpleICL1501Disassembler::isIOC(int offset)
+{
+    if (offset >= static_cast<int>(program_data.size()) - 1)
+    {
+        return false;
+    }
+
+    uint8_t byte1 = program_data[offset];
+
+    // IOC binary format: 01111XXX FFFFFFFF (17X-FFF in octal)
+    // First byte pattern: 01111xxx (0x78-0x7F)
+    return (byte1 & 0xF8) == 0x78;
+}
+
 bool SimpleICL1501Disassembler::decodeBRU(int addr, int offset, ICL1501Formatter &formatter)
 {
     return isBRU(offset) && decodeBranchInstruction(addr, offset, formatter, "BRU,", "Branch to");
@@ -853,9 +872,9 @@ bool SimpleICL1501Disassembler::decodeSSC(int addr, int offset, ICL1501Formatter
 }
 
 // Helper function to reduce duplication in simple control instruction decoding
-void SimpleICL1501Disassembler::printSimpleControl(int addr, uint8_t byte1, uint8_t byte2, 
-                                                   const std::string &mnemonic, 
-                                                   const std::string &comment, 
+void SimpleICL1501Disassembler::printSimpleControl(int addr, uint8_t byte1, uint8_t byte2,
+                                                   const std::string &mnemonic,
+                                                   const std::string &comment,
                                                    ICL1501Formatter &formatter)
 {
     std::string label = "";
@@ -957,6 +976,46 @@ bool SimpleICL1501Disassembler::decodeCPI(int addr, int offset, ICL1501Formatter
     uint8_t byte2 = program_data[offset + 1];
 
     printSimpleControl(addr, byte1, byte2, "CPI,", "Clear processor interrupt overflow", formatter);
+    return true;
+}
+
+bool SimpleICL1501Disassembler::decodeIOC(int addr, int offset, ICL1501Formatter &formatter)
+{
+    if (!isIOC(offset))
+    {
+        return false;
+    }
+
+    uint8_t byte1 = program_data[offset];
+    uint8_t byte2 = program_data[offset + 1];
+
+    // Extract channel and function code
+    uint8_t channel = byte1 & 0x07; // Last 3 bits: IOC channel/device type
+    uint8_t function_code = byte2;  // Full second byte: function code
+
+    std::string label = "";
+    if (use_labels)
+    {
+        label = symbol_table.getLabelAtAddress(addr);
+    }
+
+    // Format operands as C#N; FFF.
+    std::ostringstream operands_stream;
+    operands_stream << "C#" << static_cast<int>(channel) << "; "
+                    << std::setfill('0') << std::setw(3) << std::oct << static_cast<int>(function_code) << ".";
+
+    // Generate appropriate comment
+    std::string comment = createIOCComment(channel, function_code);
+
+    formatter.startLine();
+    formatter.writeAddress(addr);
+    formatter.writeBytes(byte1, byte2);
+    formatter.writeLabel(label);
+    formatter.writeVerb("IOC,");
+    formatter.writeOperands(operands_stream.str());
+    formatter.writeComment(comment);
+    formatter.endLine();
+
     return true;
 }
 
@@ -1289,6 +1348,83 @@ void SimpleICL1501Disassembler::createJumpLabel(int address, int offset)
     }
 }
 
+std::string SimpleICL1501Disassembler::createIOCComment(uint8_t channel, uint8_t function_code)
+{
+    // Basic channel identification
+    std::string device_name;
+    switch (channel)
+    {
+    case 0:
+        device_name = "I/O channel 0";
+        break;
+    case 1:
+        device_name = "Tape control";
+        break;
+    case 2:
+        device_name = "I/O channel 2";
+        break;
+    case 3:
+        device_name = "Keyboard control";
+        break;
+    case 4:
+        device_name = "Display control";
+        break;
+    case 5:
+        device_name = "I/O channel 5";
+        break;
+    case 6:
+        device_name = "I/O channel 6";
+        break;
+    case 7:
+        device_name = "I/O channel 7";
+        break;
+    }
+
+    // Basic function identification for common/documented functions
+    std::string function_desc = "";
+    if (channel == 3 && function_code == 0x0E) // 173-016 (016 octal = 0x0E)
+    {
+        function_desc = " (load status)";
+    }
+    else if (channel == 3 && function_code == 0x0B) // 173-013 (013 octal = 0x0B)
+    {
+        function_desc = " (beep)";
+    }
+    else if (channel == 4)
+    {
+        // Basic display mode identification
+        if ((function_code & 0x01) == 0x00)
+        {
+            function_desc = " (8-line mode)";
+        }
+        else
+        {
+            function_desc = " (4-line mode)";
+        }
+    }
+    else if (channel == 1)
+    {
+        // Basic tape function identification
+        switch (function_code & 0x07)
+        {
+        case 0x00:
+            function_desc = " (forward/slow/erase)";
+            break;
+        case 0x01:
+            function_desc = " (forward/slow)";
+            break;
+        case 0x02:
+            function_desc = " (forward/fast)";
+            break;
+        default:
+            function_desc = "";
+            break;
+        }
+    }
+
+    return device_name + function_desc;
+}
+
 void SimpleICL1501Disassembler::printUnknown(int addr, int offset, ICL1501Formatter &formatter)
 {
     if (offset < static_cast<int>(program_data.size()) - 1)
@@ -1317,7 +1453,7 @@ int main(int argc, char *argv[])
 {
     if (argc < 2)
     {
-        std::cout << "Simple ICL-1501 Disassembler (BRU/BRE/BRH/BRL/SBU/SBE/SBH/SBL/TLJ/TMJ/TLX/TMX/EXU/EXB/SMS/SMC/SSC/SAC/LSW/LPS/DPI/EPI/CPI instructions)" << std::endl;
+        std::cout << "Simple ICL-1501 Disassembler (BRU/BRE/BRH/BRL/SBU/SBE/SBH/SBL/TLJ/TMJ/TLX/TMX/EXU/EXB/SMS/SMC/SSC/SAC/LSW/LPS/DPI/EPI/CPI/IOC instructions)" << std::endl;
         std::cout << "Usage:" << std::endl;
         std::cout << "  " << argv[0] << " -o <octal_pairs> [--labels]  - Disassemble from octal pairs (manual format)" << std::endl;
         std::cout << "  " << argv[0] << " -x <hex_string> [--labels]   - Disassemble from hex string" << std::endl;

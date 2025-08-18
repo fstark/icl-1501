@@ -201,6 +201,15 @@ bool runICL1501DisassemblerTests()
         {"156-001", "P00-000: 156-001.              EPI,  000.", "EPI - Enable processor interrupt"},
         {"156-002", "P00-000: 156-002.              CPI,  000.", "CPI - Clear processor interrupt"},
 
+        // IOC (I/O Control) instructions
+        {"174-123", "P00-000: 174-123.              IOC,  C#4; 123.", "IOC display control"},
+        {"173-016", "P00-000: 173-016.              IOC,  C#3; 016.", "IOC keyboard status"},
+        {"173-013", "P00-000: 173-013.              IOC,  C#3; 013.", "IOC keyboard beep"},
+        {"171-000", "P00-000: 171-000.              IOC,  C#1; 000.", "IOC tape forward/slow/erase"},
+        {"171-001", "P00-000: 171-001.              IOC,  C#1; 001.", "IOC tape forward/slow"},
+        {"171-002", "P00-000: 171-002.              IOC,  C#1; 002.", "IOC tape forward/fast"},
+        {"170-377", "P00-000: 170-377.              IOC,  C#0; 377.", "IOC channel 0 function"},
+
         // Section-relative addressing tests
         {"P13-000: 115-062", "P13-000: 115-062.              BRH,  P15; 050.", "BRH from section 1 shows P15"},
         {"P27-000: 112-100", "P27-000: 112-100.              BRH,  P22; 064.", "BRH from section 2 shows P22"},

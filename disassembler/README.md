@@ -4,7 +4,7 @@ This directory contains the ICL-1501 disassembler implementation.
 
 ## Supported Instructions
 
-The disassembler supports 23 ICL-1501 instruction types:
+The disassembler supports 24 ICL-1501 instruction types:
 
 ### Branch Instructions
 - **BRU** (Branch Unconditionally) - Format: `01000AAA AAAAAAA0`
@@ -43,6 +43,15 @@ The disassembler supports 23 ICL-1501 instruction types:
 - **EPI** (Enable Processor Interrupt) - Format: `01101110 00000001`
 - **CPI** (Clear Processor Interrupt) - Format: `01101110 00000010`
 
+### I/O Control Instructions
+- **IOC** (I/O Control) - Format: `01111XXX FFFFFFFF` (17X-FFF)
+  - Channel 0: General I/O channel 0
+  - Channel 1: Tape control (mini-tape operations)
+  - Channel 2: General I/O channel 2  
+  - Channel 3: Keyboard control (input, beep, status)
+  - Channel 4: Display control (CRT display modes)
+  - Channel 5-7: Additional I/O channels
+
 ## Building
 
 ```bash
@@ -68,15 +77,15 @@ make
 
 ## Complete Instruction Showcase
 
-Here's a comprehensive example demonstrating all 23 supported instruction types:
+Here's a comprehensive example demonstrating all 24 supported instruction types:
 
 ```bash
-./icl1501_disassembler -o "P13-044: 102-000 100-001 110-000 110-001 122-100 120-001 130-200 130-001 052-100 010-020 000-017 040-310 140-000 160-020 150-004 151-100 152-110 153-000 154-000 155-000 156-000 156-001 156-002" --labels
+./icl1501_disassembler -o "P13-044: 102-000 100-001 110-000 110-001 122-100 120-001 130-200 130-001 052-100 010-020 000-017 040-310 140-000 160-020 150-004 151-100 152-110 153-000 154-000 155-000 156-000 156-001 156-002 174-123" --labels
 ```
 
 Output:
 ```
-Simple ICL-1501 Disassembler (BRU/BRE/BRH/BRL/SBU/SBE/SBH/SBL/TLJ/TMJ/TLX/TMX/EXU/EXB/SMS/SMC/SSC/SAC/LSW/LPS/DPI/EPI/CPI instructions)
+Simple ICL-1501 Disassembler (BRU/BRE/BRH/BRL/SBU/SBE/SBH/SBL/TLJ/TMJ/TLX/TMX/EXU/EXB/SMS/SMC/SSC/SAC/LSW/LPS/DPI/EPI/CPI/IOC instructions)
 =================================================
 
 PPP-LLL: MP1-MP2-MP3-MP4. LAB: VERB OPERANDS         COMMENTS
@@ -104,6 +113,7 @@ P13-112: 155-000.              LPS, 000.             Load processor status word 
 P13-114: 156-000.              DPI, 000.             Disable processor interrupt
 P13-116: 156-001.              EPI, 000.             Enable processor interrupt
 P13-120: 156-002.              CPI, 000.             Clear processor interrupt overflow
+P13-122: 174-123.              IOC, C#4; 123.        Display control (4-line mode)
 ```
 
 This showcase demonstrates:
@@ -124,6 +134,7 @@ This showcase demonstrates:
 - **DPI**: Disable processor interrupt handling
 - **EPI**: Enable processor interrupt handling  
 - **CPI**: Clear processor interrupt overflow flag
+- **IOC**: I/O control for display, keyboard, tape, and other devices
 - **Label generation**: Automatic L00-L02 labels for jump targets
 - **Section addressing**: P13 section with proper address calculation
 

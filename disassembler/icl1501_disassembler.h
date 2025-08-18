@@ -58,18 +58,21 @@ private:
     bool isSMS(int offset);
     bool isSMC(int offset);
     bool isSSC(int offset);
-    
+
     // Helper for simple control instructions (15X-000 pattern)
     bool isSimpleControlInstruction(int offset, uint8_t instruction_id);
     bool isSAC(int offset);
     bool isLSW(int offset);
     bool isLPS(int offset);
-    
+
     // Helper for interrupt control instructions (156-00X pattern)
     bool isInterruptControlInstruction(int offset, uint8_t function_code);
     bool isDPI(int offset);
     bool isEPI(int offset);
     bool isCPI(int offset);
+
+    // IOC (I/O Control) instruction (17X-FFF pattern)
+    bool isIOC(int offset);
     bool decodeBRU(int addr, int offset, ICL1501Formatter &formatter);
     bool decodeBRE(int addr, int offset, ICL1501Formatter &formatter);
     bool decodeBRH(int addr, int offset, ICL1501Formatter &formatter);
@@ -93,6 +96,7 @@ private:
     bool decodeDPI(int addr, int offset, ICL1501Formatter &formatter);
     bool decodeEPI(int addr, int offset, ICL1501Formatter &formatter);
     bool decodeCPI(int addr, int offset, ICL1501Formatter &formatter);
+    bool decodeIOC(int addr, int offset, ICL1501Formatter &formatter);
     void printBranch(int addr, uint8_t byte1, uint8_t byte2, uint8_t page, uint8_t location, const std::string &mnemonic, const std::string &description, ICL1501Formatter &formatter);
     void printStackBranch(int addr, uint8_t byte1, uint8_t byte2, uint8_t page, uint8_t location, const std::string &mnemonic, const std::string &description, ICL1501Formatter &formatter);
     void printJumpInstruction(int addr, uint8_t byte1, uint8_t byte2, const std::string &mnemonic,
@@ -104,7 +108,8 @@ private:
     void printMemoryControl(int addr, uint8_t byte1, uint8_t byte2, const std::string &mnemonic,
                             const std::string &operands, const std::string &comment, ICL1501Formatter &formatter);
     void printSimpleControl(int addr, uint8_t byte1, uint8_t byte2, const std::string &mnemonic,
-                           const std::string &comment, ICL1501Formatter &formatter);
+                            const std::string &comment, ICL1501Formatter &formatter);
+    std::string createIOCComment(uint8_t channel, uint8_t function_code);
     void createJumpLabel(int address, int offset); // Helper for jump label generation
     void printUnknown(int addr, int offset, ICL1501Formatter &formatter);
 
