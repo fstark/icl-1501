@@ -1350,38 +1350,37 @@ void SimpleICL1501Disassembler::createJumpLabel(int address, int offset)
 
 std::string SimpleICL1501Disassembler::createIOCComment(uint8_t channel, uint8_t function_code)
 {
+    static std::string channel_names[8] = {
+        "Current tape", "Tape #1", "Tape #2", "Keyboard",
+        "Display", "SIO Channel (Coaxial)", "Communications", "Parallel I/O"};
+
+    static std::string tape_function_names[256];
+    tape_function_names[000] = " (start tape forward, slow, with erase)";
+    tape_function_names[001] = " (start tape forward, slow, without erase)";
+    tape_function_names[002] = " (start tape forward, fast)";
+    tape_function_names[003] = " (start tape reverse, slow)";
+    tape_function_names[004] = " (start tape reverse, fast)";
+    tape_function_names[005] = " (stop tape)";
+    tape_function_names[006] = " (unlock keyboard)";
+    tape_function_names[007] = " (transfer byte)";
+    tape_function_names[010] = " (set tape write mode)";
+    tape_function_names[011] = " (set tape read mode)";
+    tape_function_names[012] = " (rewind tape)";
+    tape_function_names[013] = " (enable keyboard click)";
+    tape_function_names[014] = " (lock keyboard)";
+    tape_function_names[016] = " (read status word)";
+
     // Basic channel identification
-    std::string device_name;
-    switch (channel)
-    {
-    case 0:
-        device_name = "I/O channel 0";
-        break;
-    case 1:
-        device_name = "Tape control";
-        break;
-    case 2:
-        device_name = "I/O channel 2";
-        break;
-    case 3:
-        device_name = "Keyboard control";
-        break;
-    case 4:
-        device_name = "Display control";
-        break;
-    case 5:
-        device_name = "I/O channel 5";
-        break;
-    case 6:
-        device_name = "I/O channel 6";
-        break;
-    case 7:
-        device_name = "I/O channel 7";
-        break;
-    }
+    std::string device_name = channel_names[channel & 0x7];
 
     // Basic function identification for common/documented functions
     std::string function_desc = "";
+
+    if (channel < 3) // Tape channels
+    {
+        function_desc = tape_function_names[function_code & 0xFF];
+    }
+
     if (channel == 3 && function_code == 0x0E) // 173-016 (016 octal = 0x0E)
     {
         function_desc = " (load status)";
