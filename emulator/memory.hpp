@@ -95,4 +95,15 @@ public:
 		}
 		std::cout << std::dec << std::endl;
 	}
+
+	void dump( addrs_t from, size_t size = 16) const
+	{
+		assert(from.linear() + size <= sizeof(data));
+		std::cout << from.as_string() << ": ";
+		for (size_t i = 0; i < size; i++)
+		{
+			std::cout << to_octal((*this)[from+i]) << " ";
+		}
+		std::cout << std::endl;
+	}
 };
