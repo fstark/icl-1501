@@ -9,6 +9,15 @@
 #include <string>
 #include <stdint.h>
 
+std::string to_octal(uint8_t value, int w )
+{
+	char buffer[4];
+	char format[5];
+	snprintf(format, sizeof(format), "%%0%do", w);
+	snprintf(buffer, sizeof(buffer), format, value);
+	return std::string(buffer);
+}
+
 // Load from hex string
 std::vector<uint8_t> vector_from_hex(std::string_view hex_str)
 {
@@ -69,6 +78,16 @@ std::vector<uint8_t> vector_from_octal_pairs(std::string_view octal_pairs)
 		{
 			std::string octal1_str = pair.substr(0, dash_pos);
 			std::string octal2_str = pair.substr(dash_pos + 1);
+
+			// Check if both strings contain only valid octal digits (0-7)
+			if (octal1_str.empty() || octal2_str.empty() ||
+				octal1_str.find_first_not_of("01234567") != std::string::npos ||
+				octal2_str.find_first_not_of("01234567") != std::string::npos)
+			{
+				std::cerr << "Error: Invalid octal digit in pair: " << pair << std::endl;
+				throw std::invalid_argument("Invalid octal digit");
+			}
+
 			int val1 = std::stoi(octal1_str, nullptr, 8);
 			int val2 = std::stoi(octal2_str, nullptr, 8);
 

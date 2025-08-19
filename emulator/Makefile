@@ -3,7 +3,7 @@
 CXX = g++
 CXXFLAGS = -std=c++20 -O2 -Wall
 TARGET = icl1501
-SRC = emulator.cpp utils.cpp
+SRC = addrs.cpp iw.cpp emulator.cpp utils.cpp disassembler.cpp
 
 all: $(TARGET)
 
