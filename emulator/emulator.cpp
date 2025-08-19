@@ -13,61 +13,9 @@
 #include "addrs.hpp"
 #include "iw.hpp"
 #include "disassembler.hpp"
+#include "memory.hpp"
 
 // stack==P00-040
-
-class memory_t
-{
-    uint8_t data[16384];
-
-public:
-    memory_t() { std::fill(std::begin(data), std::end(data), 0); }
-
-    uint8_t &operator[](size_t index)
-    {
-        assert(index < sizeof(data));
-        return data[index];
-    }
-
-    const uint8_t &operator[](size_t index) const
-    {
-        assert(index < sizeof(data));
-        return data[index];
-    }
-
-    uint8_t &operator[](addrs_t addr)
-    {
-        return (*this)[addr.linear()];
-    }
-
-    const uint8_t &operator[](addrs_t addr) const
-    {
-        return (*this)[addr.linear()];
-    }
-
-    void get(addrs_t adrs, uint8_t &b0, uint8_t &b1) const
-    {
-        b0 = (*this)[adrs];
-        b1 = (*this)[adrs + 1];
-    }
-
-    iw_t get_instruction(addrs_t adrs) const
-    {
-        uint8_t b0, b1;
-        get(adrs, b0, b1);
-        return iw_t(b0, b1);
-    }
-
-    //  Fill memory from adrs with content of bytes
-    void copy(addrs_t adrs, const std::vector<uint8_t> &bytes)
-    {
-        assert(adrs.linear() + bytes.size() <= sizeof(data));
-        for (size_t i = 0; i < bytes.size(); ++i)
-        {
-            (*this)[adrs + i] = bytes[i];
-        }
-    }
-};
 
 void test_memory_t()
 {
@@ -110,9 +58,124 @@ class cpu_t
     // clock_t clock;
     memory_t &memory;
     io_t &io;
+    uint8_t sp_;
 
+    disassembler_t disassembler;
+
+    uint8_t sp() const { return sp_ & 0x1f; }
+
+    addrs_t sp_base( int stack ) const
+    {
+        return addrs_t(0, 040 + stack * 2); 
+    }
+
+    addrs_t sp_addrs() const
+    {
+        return sp_base(sp());
+    }
+
+    //  Current instruction address
+    addrs_t iaw() const { return memory.get_addrs(sp_addrs()); }
+    void set_iaw(const addrs_t addrs)
+    {
+        memory.set_addrs(sp_addrs(), addrs);
+    }
+
+    addrs_t index_register_addrs( int reg) const
+    {
+        return addrs_t(0, reg );
+    }
+
+    uint8_t &index_register(int reg)
+    {
+        assert(reg >= 1 && reg <= 8);
+        return memory[index_register_addrs(reg)];
+    }
+
+    const uint8_t &index_register(int reg) const
+    {
+        assert(reg >= 1 && reg <= 8);
+        return memory[index_register_addrs(reg)];
+    }
+
+    
 public:
     cpu_t(memory_t &mem, io_t &io_device) : memory(mem), io(io_device) {}
+
+    void reset()
+    {
+        sp_ = 0;
+        set_iaw(addrs_t(1, 0));
+    }
+
+    void step()
+    {
+        dump();
+
+        // Fetch the instruction at the current instruction address
+        addrs_t pc = iaw();
+        iw_t iw = memory.get_instruction(pc);
+
+        execute( iw );
+
+        pc = pc.next_instruction();
+        set_iaw(pc);
+    };
+
+    void execute(const iw_t &iw)
+    {
+
+        // Decode the instruction and execute it
+        auto instr_type = iw_t::instr_map()[iw.as_word()];
+
+        switch (instr_type)
+        {
+            case iw_t::kLDX:
+                index_register(iw.indexing_register()) = iw.literal();
+                break;
+            case iw_t::kUnknown:
+                throw std::runtime_error("Unknown instruction: " + iw.as_octal());
+            default:
+                disassembler_t disassembler;
+                throw std::runtime_error("Unimplemented instruction: " + disassembler.disassemble(iw));
+        }
+    }
+
+    void dump() const
+    {
+        std::cout << "CPU state:" << std::endl;
+        auto pc = iaw();
+        auto iw = memory.get_instruction(pc);
+
+        std::cout << "  " << pc.as_string() << ": ";
+        std::cout << iw.as_octal() << "     ";
+        std::cout << disassembler.disassemble(iw) << std::endl;
+
+        std::cout << "  SP : ";
+        for (int i = 0; i < 8; ++i)
+        {
+            if (i==sp())
+                std::cout << "*";
+            std::cout << (sp_base(i)).as_string() << " ";
+        }
+        std::cout << std::endl;
+
+        std::cout << "  IAW: ";
+        for (int i = 0; i < 8; ++i)
+        {
+            if (i==sp())
+                std::cout << "*";
+            std::cout << memory.get_addrs(sp_base(i)).as_string() << " ";
+        }
+        std::cout << std::endl;
+
+        std::cout << "       R#1 R#2 R#3 R#4 R#5 R#6 R#7 R#8" << std::endl;
+        std::cout << "       ";
+        for (int i = 1; i <= 8; ++i)
+            std::cout << to_octal(index_register(i)) << " ";
+        std::cout << std::endl;
+
+    }
 };
 
 void load_bootstrap(memory_t &memory)
@@ -163,5 +226,17 @@ int main(int argc, char **argv)
     test_iw_t();
     test_disassemble_memory(adrs, data);
     // icl1501::iw_t::test();
+
+    memory_t memory;
+    load_bootstrap(memory);
+
+    io_t io;
+    cpu_t cpu(memory, io);
+    cpu.reset();
+    std::cout << "Bootstrap loaded into memory." << std::endl;
+    while (1)
+        cpu.step();
+    std::cout << "CPU step executed." << std::endl;
+
     return 0;
 }

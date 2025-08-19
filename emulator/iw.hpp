@@ -12,11 +12,11 @@
 // Instruction word
 class iw_t
 {
-    uint8_t iwl; // left word
-    uint8_t iwr; // right word
+    uint8_t iwl_; // left word
+    uint8_t iwr_; // right word
 
 public:
-    iw_t(uint8_t left, uint8_t right) : iwl(left), iwr(right) {}
+    iw_t(uint8_t left, uint8_t right) : iwl_(left), iwr_(right) {}
 
     typedef enum
     {
@@ -25,19 +25,29 @@ public:
         kDecrement = 0b11,
     } eIndexingMode;
 
+    uint8_t iwl() const
+    {
+        return iwl_;
+    }
+
+    uint8_t iwr() const
+    {
+        return iwr_;
+    }
+
     uint16_t as_word() const
     {
-        return ((uint16_t)iwl << 8) | iwr; // Combine left and right words into a linear address
+        return ((uint16_t)iwl_ << 8) | iwr_; // Combine left and right words into a linear address
     }
 
     eIndexingMode indexing_mode() const
     {
-        return static_cast<eIndexingMode>(iwr & 0b11); // bits 0-1 of the right word
+        return static_cast<eIndexingMode>(iwr_ & 0b11); // bits 0-1 of the right word
     }
 
     uint8_t indexing_register() const
     {
-        return iwl & 0b111; // bits 0-2 of the left word
+        return iwl_ & 0b111; // bits 0-2 of the left word
     }
 
     std::string indexing_register_name() const
@@ -47,25 +57,17 @@ public:
 
     uint8_t indexing_page() const
     {
-        return (iwr >> 2) & 0b111111; // bits 2-7 of the right word
+        return (iwr_ >> 2) & 0b111111; // bits 2-7 of the right word
     }
-
-    typedef enum
-    {
-        kClass0 = 0b00, // Jump
-        kClass1 = 0b01, // Branch + I/O
-        kClass2 = 0b10, // Transfer + Arithmetic
-        kClass3 = 0b11  // Boolean + Compare
-    } eInstructionClass;
 
     uint8_t jump_count() const
     {
-        return iwl & 0b00011110;
+        return iwl_ & 0b00011110;
     }
 
     bool direction() const
     {
-        return (iwl & 01) != 0;
+        return (iwl_ & 01) != 0;
     }
 
     int signed_jump_count() const
@@ -76,56 +78,56 @@ public:
 
     uint8_t literal() const
     {
-        return iwr;
+        return iwr_;
     }
 
     addrs_t address() const
     {
         //  Section is always 0, level and address from instruction
-        return addrs_t(0, iwl & 0b0000111, iwr & 0b01111110);
+        return addrs_t(0, iwl_ & 0b0000111, iwr_ & 0b01111110);
     }
 
     uint8_t section1() const
     {
-        return (iwr & 0b00111000) >> 3;
+        return (iwr_ & 0b00111000) >> 3;
     }
 
     uint8_t section2() const
     {
-        return (iwr & 0b11100000) >> 5;
+        return (iwr_ & 0b11100000) >> 5;
     }
 
     uint8_t level() const
     {
-        return (iwr & 0b00011100) >> 2;
+        return (iwr_ & 0b00011100) >> 2;
     }
 
-    //  section + level in top of iwr
+    //  section + level in top of iwr_
     uint8_t page_number() const
     {
-        return (iwr & 0b11111100);
+        return (iwr_ & 0b11111100);
     }
 
     uint8_t shift_count() const
     {
-        return iwl & 0b00000111;
+        return iwl_ & 0b00000111;
     }
 
     bool set_v() const
     {
-        return (iwr & 0b01000000) != 0;
+        return (iwr_ & 0b01000000) != 0;
     }
 
     bool set_u() const
     {
-        return (iwr & 0b10000000) != 0;
+        return (iwr_ & 0b10000000) != 0;
     }
 
     bool compare(uint8_t value1, uint8_t mask1, u_int8_t value2, u_int8_t mask2) const
     {
         // Compare the values with the masks
-        return (iwl & mask1) == (value1 & mask1) &&
-               (iwr & mask2) == (value2 & mask2);
+        return (iwl_ & mask1) == (value1 & mask1) &&
+               (iwr_ & mask2) == (value2 & mask2);
     }
 
     bool compare(uint8_t value1, uint8_t mask1) const
@@ -226,12 +228,12 @@ public:
 
     uint8_t ioc_channel() const
     {
-        return iwl & 0b00000111;
+        return iwl_ & 0b00000111;
     }
 
     uint8_t ioc_function_code() const
     {
-        return iwr;
+        return iwr_;
     }
 
     std::string ioc_channel_name() const
@@ -482,9 +484,9 @@ public:
     const std::string as_octal() const
     {
         std::string s = "";
-        s += to_octal(iwl);
+        s += to_octal(iwl_);
         s += "-";
-        s += to_octal(iwr);
+        s += to_octal(iwr_);
         return s;
     }
 };

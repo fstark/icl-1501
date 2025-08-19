@@ -40,6 +40,16 @@ public:
         }
     }
 
+    uint8_t high() const
+    {
+        return b0;
+    }
+
+    uint8_t low() const
+    {
+        return b1;
+    }
+
     uint16_t linear() const
     {
         return (b0 << 8) | b1; // Combine b0 and b1 into a linear address
