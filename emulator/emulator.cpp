@@ -115,14 +115,12 @@ public:
     cpu_t(memory_t &mem, io_t &io_device) : memory(mem), io(io_device) {}
 };
 
-
-
 void load_bootstrap(memory_t &memory)
 {
     // Load the bootstrap code into memory starting at P01-000
-        memory.copy(
-            addrs_t("P01-000"),
-            vector_from_octal_pairs("201-030 170-007 231-002 341-230 111-003 170-016 170-005 100-030"));
+    memory.copy(
+        addrs_t("P01-000"),
+        vector_from_octal_pairs("201-030 170-007 231-002 341-230 111-003 170-016 170-005 100-030"));
 }
 
 void test_disassemble_memory(const std::string &adrs_string, const std::string &data_string)
@@ -130,14 +128,14 @@ void test_disassemble_memory(const std::string &adrs_string, const std::string &
     addrs_t adrs(adrs_string);
     auto data = vector_from_octal_pairs(data_string);
 
-        memory_t memory;
+    memory_t memory;
     memory.copy(adrs, data);
 
     std::cout << "Testing disassembly" << std::endl;
 
     disassembler_t disassembler;
 
-        for (int i = 0; i != data.size() / 2; i++)
+    for (size_t i = 0; i != data.size() / 2; i++)
     {
         iw_t w = memory.get_instruction(adrs);
         std::cout << adrs.as_string() << ": " << w.as_octal() << "      " << disassembler.disassemble(w) << std::endl;
@@ -145,16 +143,16 @@ void test_disassemble_memory(const std::string &adrs_string, const std::string &
     }
 }
 
-int main( int argc, char **argv )
+int main(int argc, char **argv)
 {
     std::string adrs = "P01-000";
     std::string data = "201-030 170-007 231-002 341-230 111-003 170-016 170-005 100-030";
 
-    if (argc==2)
+    if (argc == 2)
     {
         data = argv[1];
     }
-    if (argc==3)
+    if (argc == 3)
     {
         adrs = argv[1];
         data = argv[2];
@@ -163,7 +161,7 @@ int main( int argc, char **argv )
     test_addrs_t();
     test_memory_t();
     test_iw_t();
-    test_disassemble_memory( adrs, data );
+    test_disassemble_memory(adrs, data);
     // icl1501::iw_t::test();
     return 0;
 }
