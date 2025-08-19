@@ -4,6 +4,7 @@
 #include <string>
 #include <cassert>
 #include <cstdio>
+#include <bitset>
 
 #include "addrs.hpp"
 #include "utils.hpp"
@@ -28,7 +29,7 @@ public:
     {
         return ((uint16_t)iwl << 8) | iwr; // Combine left and right words into a linear address
     }
-    
+
     eIndexingMode indexing_mode() const
     {
         return static_cast<eIndexingMode>(iwr & 0b11); // bits 0-1 of the right word
