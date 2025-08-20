@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <vector>
+#include <iostream>
 
 #include "tape.hpp"
 
@@ -37,6 +38,11 @@ public:
     tape_reader_t(tape_t *tape)
         : position_(0), tape_(tape)
     {
+        if (tape)
+        {
+            std::cout << "Mounted tape:\n";
+            tape->dump();
+        }
     }
 
     bool has_next() const
