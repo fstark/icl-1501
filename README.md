@@ -2,7 +2,7 @@
 
 A C++ disassembler for the ICL-1501/Cogar C4 minicomputer that converts binary machine code to the original DPL-1 assembly language format.
 
-The disassembler does not respect the orignal format of the DPL-1 assembly language as it is quite hard to read, but a more modern version.
+The disassembler does not respect the orignal format of the DPL-1 assembly language as it is quite hard to read, but a more modern straightforward version.
 
 # How to use
 
@@ -66,5 +66,5 @@ P01-154: 172-007      IOC C#2 007 ; tape #2 tape transfer byte blocking
 
 ```
 
-Will proved a dissembly of all DPL-1 instructions.
+Will provide a disassembly of all DPL-1 instructions.
 

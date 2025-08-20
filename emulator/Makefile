@@ -3,15 +3,22 @@
 CXX = g++
 CXXFLAGS = -std=c++20 -O2 -Wall
 TARGET = icl1501
-SRC = addrs.cpp iw.cpp emulator.cpp utils.cpp disassembler.cpp
+SRC = addrs.cpp disassembler.cpp emulator.cpp io.cpp iw.cpp memory.cpp tape.cpp tape_reader.cpp utils.cpp 
+HDR = $(SRC:.cpp=.hpp)
+OBJ = $(SRC:.cpp=.o)
+
+MAKEFLAGS += -j
 
 all: $(TARGET)
 
-$(TARGET): $(SRC)
-	$(CXX) $(CXXFLAGS) -o $(TARGET) $(SRC)
+$(TARGET): $(OBJ)
+	$(CXX) $(CXXFLAGS) -o $(TARGET) $(OBJ)
+
+%.o: %.cpp $(HDR)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(TARGET)
+	rm -f $(TARGET) $(OBJ)
 
 run: $(TARGET)
 	./$(TARGET)

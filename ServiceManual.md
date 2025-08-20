@@ -56,6 +56,7 @@ selecting and ordering options.
 
 Table 1-1.  Models and Options Available
 
+```
 ---------------------------------------------------------------
 Model                                           Part Number
 ---------------------------------------------------------------
@@ -63,12 +64,13 @@ Model                                           Part Number
 1501-FF Intelligent Terminal . . . . . . . . .  001-002994-XXX
 1501-CL Intelligent Terminal . . . . . . . . .  001-001000-XXX
 1534A Asynchronous Communications Adapter . . . 003-001907-XXX
-1535A Binary Synchronous Communications Adapter  003-001907-039
+1535A Binary Synchronous Communications Adapter 003-001907-039
 1530-1, 13-Key Numeric Pad . . . . . . . . . .  003-003233-XXX
 Booster Transformer Option for 100 VAC Input .  003-003350-006
 *Dual SIO Option . . . . . . . . . . . . . . .  003-002830-008
 1533 Dual Drive . . . . . . . . . . . . . . .   003-001574-XXX
 ---------------------------------------------------------------
+```
 
 *Must be included with 1501-CL
 
@@ -86,7 +88,7 @@ the Operator Instructions Manual; however, those of interest to the field
 service engineer are summarized in the following paragraphs.
 
 
-
+```
                CRT ASSEMBLY
                    |
             +---------------+
@@ -111,6 +113,7 @@ COMMUNICATIONS BOARD
 |
 PROCESSOR/MEMORY
 BOARD
+```
 
 Figure 1-2. Location of Major Components
 
@@ -210,7 +213,7 @@ driven at 40 inches per second during search and rewind operations.
 A picture of the cartridge, with "write pin" and "leader eyelet" indicated.
 ```
 
-(Figure 1-3. Tape Crtridge)
+(Figure 1-3. Tape Cartridge)
 
 ### Dual Serial Input-Output (SIO).
 
@@ -320,3 +323,867 @@ cessed by any specific program.  Refer to the block diagram in figure 2-1
 for the following discussion.
 
 
+
+
+
+
+### 2-2. PROCESSOR.
+
+The processor is a single board that is the second board from the bottom
+of the chassis.  It is a small, stored program, general purpose computer
+with a repertoire of 41 instructions.  This number does not include the
+input-output instructions, which are executed by the I/O controller.
+
+A block diagram of the processor is shown in figure 2-2.  Those familiar
+with the organization of computers will recognize most of the basic ele-
+ments, which are:
+
+a. An operation register and decoder.  These circuits hold and decode  
+   each instruction read from memory.
+
+b. A memory data register, which holds data read from memory.
+
+c. A B-register, which holds one of the operands involved in many of the  
+   operations.
+
+d. An adder, which performs the actual arithmetic or logical operation.
+
+e. A memory address register, which holds the address of a memory loca-  
+   tion to be used.
+
+Other elements not shown on the block diagram but which normally are used
+in general purpose computers are:
+
+a. Index registers, which hold a value used to modify a memory address.  
+   This processor has index registers but they are memory locations  
+   rather than hardware registers.  Seven memory locations in each memory  
+   section are reserved to be used as index registers.
+
+b. An instruction address register, which holds the address of the memory  
+   location in which the next instruction to be executed can be found.  
+   Again, memory locations substitute for hardware registers.  Thirty-two  
+   memory locations are reserved to hold instruction addresses.  A com-  
+   plex scheme in which a counter, called the stack pointer, designates  
+   the memory location to be read to acquire the address of the next in-  
+   struction to be executed is used in this processor.  This scheme is  
+   explained in detail later in this description.
+
+c. An accumulator, which normally holds one of the operands involved in  
+   an arithmetic operation and also holds the result when the operation  
+   is completed.  This processor has an accumulator that performs the  
+   aforementioned functions; however, it also serves as a primary input-  
+   output register for the processor, and for this reason it is located  
+   on the I/O controller board in order to simplify the I/O wiring.
+
+
+
+#### Word Formats.
+
+The processor is organized to handle both instructions and data in 8-bit
+bytes. The bit positions in each byte are labeled 0 through 7, in order
+by the power of two that the position represents.
+
+A typical instruction format is shown in figure 2-3. Note that each in-
+struction is made up of two parts: (1) the IWR, instruction word-right,
+and (2) the IWL, instruction word-left. Memory addresses are also made
+up of two bytes, left and right, while data is handled as a single byte.
+
+
+    IWL                            IWR
+
+
+(STORED AT EVEN BYTE ADDRESS) (STORED AT ODD BYTE ADDRESS)
+
+┌─┬─┬─┬─┬─┬─┬─┬─┐ ┌─┬─┬─┬─┬─┬─┬─┬─┐
+│1│0│0│0│0│0│0│0│ │1│0│0│0│1│0│0│0│
+└─┴─┴─┴─┴─┴─┴─┴─┘ └─┴─┴─┴─┴─┴─┴─┴─┘
+OPERATION CODE ADDRESS
+200 210
+
+
+*Figure 2-3. Typical Instruction Format*
+
+---
+
+#### Memory Addresses.
+
+Because the operation of the processor is very closely related to the
+memory, a brief description of the memory addressing scheme is presented
+here before operation of the processor circuits is discussed. The memory
+in the Model 1501 is solid-state with a maximum capacity of 16,384 bytes,
+and this memory is organized into groups of 256 bytes each; each group is
+called a "page". Shown in figure 2-4 are the 77 (octal) pages that make
+up a 16,384-byte memory.
+
+An address of 14 bits is required to address a memory of 16,384 locations.
+Since the processor is organized to handle 8-bit bytes, this requires two
+bytes, as shown in figure 2-5. Note that the section bits and level bits
+together are called the page number; they choose a 256-byte page. The
+eight low-order bits are called "byte" number; they select one of the
+256 bytes in the page. For example, the address format to select byte
+320 (octal) of page 16 (called P16-320) would appear as shown in figure
+2-6. This memory location can hold half of another memory address, half
+of an instruction, or a data byte.
+
+
+
+
+
+
+
+
+     LEVEL 0     P00 P10 P20 P30 P40 P50 P60 P70
+     LEVEL 1     P01 P11 P21 P31 P41 P51 P61 P71
+     LEVEL 2     P02 P12 P22 P32 P42 P52 P62 P72
+     LEVEL 3     P03 P13 P23 P33 P43 P53 P63 P73
+     LEVEL 4     P04 P14 P24 P34 P44 P54 P64 P74
+     LEVEL 5     P05 P15 P25 P35 P45 P55 P65 P75
+     LEVEL 6     P06 P16 P26 P36 P46 P56 P66 P76
+     LEVEL 7     P07 P17 P27 P37 P47 P57 P67 P77
+
+
+SECTION 0 SECTION 1 SECTION 2 SECTION 3 SECTION 4 SECTION 5 SECTION 6 SECTION 7
+4K 8K 12K 16K
+
+Figure 2-4. Organization of Memory
+
+
+
+
+
+
+ ┌───────┬───────────┬──────────┬─────────────┐
+ │ 15-14 │ 13 - 10   │ 9 - 8    │ 7 - 0       │
+ └───────┴───────────┴──────────┴─────────────┘
+   NOT     SECTION     LEVEL       BYTE
+   USED                            NUMBER
+                 PAGE NUMBER
+
+
+
+
+Figure 2-5. Memory Address Format
+
+
+
+
+
+
+
+
+15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0
+┌──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┐
+│ 0│ 1│ 1│ 0│ 1│ 0│ 1│ 0│ 0│ 0│ 0│ 0│ 0│ 0│ 0│ 0│
+└──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┘
+SECTION 1 LEVEL 6 BYTE 320₈
+PAGE 16 P16-320
+
+
+
+
+*Figure 2-6. Sample Address*
+
+---
+
+### Instruction Addressing.
+
+Operation of the processor is controlled by a program made up of instructions. This program is stored in memory, from which it is read and executed one instruction at a time. The address of the instruction currently being executed is held in two memory locations, called stack pointer addresses. There are 32 of these locations, which means that the addresses of 16 different instructions can be held in the "stack".
+
+The contents of two stack pointer addresses are shown in figure 2-7. Note that the first location holds the byte number and that the second location holds the page number of the memory address in which an instruction is stored. In order to execute that instruction, the processor must read the contents of a pair of stack pointer addresses. (The setting of the stack pointer determines which pair of addresses is used.) Once the processor has read the instruction address from the memory location specified by the stack pointer, it then uses this address to read the instruction itself from memory.
+
+
+
+
+7 6 5 4 3 2 1 0
+┌──┬──┬──┬──┬──┬──┬──┬──┐
+│ │
+└──┴──┴──┴──┴──┴──┴──┴──┘
+BYTE
+FIRST STACK POINTER ADDRESS
+
+15 14 13 12 11 10 9 8
+┌──┬──┬──┬──┬──┬──┬──┬──┐
+│ U│ V│ │
+└──┴──┴──┴──┴──┴──┴──┴──┘
+SECTION LEVEL
+SECOND STACK POINTER ADDRESS
+
+
+
+
+*Figure 2-7. Contents of Stack Pointer Addresses*
+
+
+
+Instructions and their corresponding addresses are written in the following format:
+
+| Address of Instruction | Instruction |
+|-------------------------|--------------|
+| P03-100                 | 200-377      |
+| P03-102                 | 260-001      |
+| P03-104                 | 230-007      |
+
+The first instruction above (200-377), load 377 into the accumulator, is located at octal location 100 of page 3. P03-100 is the address of the IWL, the 200 byte. The 377 byte (the IWR) is located at the address P03-101. These instructions would be stored in page 3 of memory as shown in figure 2-8.
+
+
+070 ┌───────────────────────────────────────────────────────┐ 077
+│ │
+100 │ 200 377 260 001 230 007 │
+│ │
+110 │ │ 117
+└───────────────────────────────────────────────────────┘
+
+
+*Figure 2-8. Typical Location of Instructions in Memory*
+
+---
+
+### Use of the Stack Pointer.
+
+As shown in the preceding discussion, the address of the current instruction consists of two bytes. It is called the instruction address word left and right (IAWL and IAWR). The IAW in an active program is held in two specific memory locations, initially P00-040 and P00-041. These two locations are the first two stack pointer addresses.
+
+
+When instructions stored in sequential addresses are executed, the IAW is read from P00-040 and 041, incremented by two during execution of the instruction, and returned to P00-040 and 041. However, there are many cases in which an instruction transfers to a non-sequential memory location to acquire the next instruction. Non-sequential execution is encountered in programs that contain "Test" and "Branch" instructions. These instructions cause the program to jump to a non-sequential address if a certain condition is met.
+
+Figure 2-9 illustrates the principles discussed above. Steps A and B illustrate the execution of instructions stored in sequential addresses. Step A is instruction 200-000 (Load Accumulator with 000), located at address P01-050. This instruction address is being held in the first stack pointer address P00-040 and P00-041. (The IAWR is in P00-040; the IAWL is in P00-041.)
+
+While the Load Accumulator instruction is being executed, the IAWR (050) is incremented by two and inserted back into P00-040. Now the address of the current instruction is P01-052. This is shown in Step B.
+
+The instruction stored in address P01-052 is a branch instruction. When branch instructions are executed, they put the new branch address into both stack pointer addresses (P00-40 and P00-41), as shown in Step C. Note that branch instruction 102-000 produces address P02-000 in the stack pointer address locations. This means that the instruction held in P02-000 is executed next.
+
+Steps D and E again illustrate sequential instruction addressing; however step E is a stack-and-branch instruction. In addition to putting a new IAW into the stack pointer addresses, this instruction steps the stack pointer counter to cause the counter to "point" to the second pair of stack pointer addresses. This changes the location of the stack pointer addresses to P00-042 and 043. The old stack pointer addresses (SP0 in the figure) are not changed and they are left containing the address of the stack and branch instruction executed in step E. The purpose of storing the address of the instruction at which the branch took place is to allow the program to return to this point later. The new, and now the current, stack pointer addresses (SP1 in the figure) contain the new "branch to" address.
+
+Steps F, G, and H illustrate sequential execution using the new stack pointer addresses (SP1) to hold the instruction address words. Step H is an exit instruction. This instruction does not contain any "branch to" address. It simply steps the stack pointer counter down one, returning to stack pointer addresses P00-040 and 041 to get instruction address words. The IAW retrieved is 004-002. This is incremented by two to obtain instruction address P02-006, in step I, and thus the program has
+
+
+CONTENTS OF CONTENTS OF
+FIRST STACK POINTER SECOND STACK POINTER
+ADDRESS ADDRESS
+[P00-040] [P00-041] [P00-042] [P00-043]
+SP0 SP1
+IAWL IAWR IAWL IAWR
+
+STEP INSTRUCTION LOCATION INSTRUCTION
+A P01-050 200-000
+B P01-052 102-000
+C P02-000 300-111
+D P02-002 200-001
+E P02-004 123-026
+F P03-026 240-001
+G P03-030 300-222
+H P03-032 140-000
+I P02-006 340-362
+J P02-010 111-056
+
+
+**Figure 2-9. Use of the Stack Pointer**
+
+Returned to the point at which the branch took place (the next instruction address after the instruction in step E). The stack pointer addresses continue to be P00-040 and 041 unless another stack-and-branch instruction is executed, and the contents of the SP1 locations do not change.
+
+As previously mentioned, the purpose of the stack-and-branch, then exit, instructions is to preserve the "come from" address and allow the program to return to this address by executing the exit instruction. This allows the sharing of subroutines by different areas of the main program. A maximum of 16 consecutive stack and branch operations are possible before returning to the original starting point. The IAW's are stored in stack pointer addresses P00-040 through P00-077.
+
+
+### Data Addressing.
+
+Data bytes can be addressed by an instruction in any one of three different addressing modes: immediate, direct, or indexed. In the immediate addressing mode, the IWR is used as the data byte, and no further memory access is required by the current instruction. Immediate addressing provides a means of entering a constant into the accumulator by specifying the constant in the IWR of the instruction in which it is used. For example, instruction 200-311 causes an octal 311 to be loaded into the accumulator.
+
+In the direct addressing mode, the IWR is used as the address of the data byte. Since only the eight bits of the IWR are available for an address, only 256 (377 octal) selections are possible. Essentially, a byte within a page can be selected in the direct addressing mode but the page itself cannot be chosen.
+
+In this mode, the page number is established by two conditions. First, the section of memory (0 through 7, the most significant digit of the page number) can be selected by a Set Memory Section instruction previously executed. Second, the level of memory (0 through 7, the least significant digit of the page number) is not supplied. Therefore, it is effectively zero. Thus, instructions executed in the direct addressing mode can select addresses in pages 00, 10, 20, 30, 40, 50, 60, and 70, with the most significant digit of the page number having been previously established. For example, instruction 210-240 causes the contents of P00-240 to be loaded into the accumulator if memory section 0 is selected.
+
+The indexed addressing mode provides a method of addressing data stored *anywhere* within memory. An indexed address is composed of a byte address contained in a specified index register in memory plus a page address contained in the IWR. The high-order six bits of the IWR (2-7) specify the page within memory and the index register specifies the location within that page. Bits 0-2 of the IWL select the index register to be used.
+
+An example of an instruction executed in the indexed address mode is 213-050, the format of which is shown in figure 2-10. This instruction causes the contents of the location in P12 specified by the contents index register 3 to be loaded into the accumulator. If index register 3 contained 145 (octal), for example, the contents of P12-145 would be loaded into the accumulator. The two low-order bits of the IWR determine what changes the instruction makes in the contents of the selected index register, as follows:
+
+- **00** - Leave unchanged  
+- **10** - Increment by 1  
+- **11** - Decrement by 1  
+
+
+
+[FReD PAGE 2-19]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### Tape Control Circuits.
+
+Up to eight cartridge tape drives can be operated by the Model 1501 Intel-
+ligent Terminal; two are standard and six are optional.  The optional
+drives are added in pairs in the Model 1533 Dual Drive, which is a separate
+unit.  The tape itself is very narrow (0.15 inches wide), and it records
+only one channel of serial data.  A small cartridge holds 100 feet of this
+tape.  The cartridge is installed in a simple tape drive.  A description
+of the tape drive appears later in this section.
+
+#### Recording Method
+
+Before the tape control circuits can be discussed, the recording method
+and format must be described.  The data is recorded in the Manchester
+Code, which is also called phase encoding.  In this method, a signal
+transition always occurs in the center of a bit period regardless of
+whether the bit is a one or a zero.  The direction of the transition
+indicates the bit value; a positive-going transition indicates a one
+and a negative-going transition indicates a zero.  Since a signal tran-
+sition always takes place in the center of a bit period, the timing
+signals required to process the data when it is read can be developed
+
+directly from the signal itself.  This allows considerable variation in
+tape speed with no effect on the data.
+
+#### Tape Format
+
+Data recorded on the tape is organized into records, each record consisting
+of 143 bytes, as follows:
+
+a. A 3-byte preamble.  Two all-zero bytes followed by a byte with a one
+   in **bit position 7** and zeros in positions 0-6.
+
+b. An 8-byte header.
+
+c. 128 data bytes.
+
+d. A CRC (cyclic redundancy character) byte, which is calculated by the
+   processor and is used for error checking.
+
+e. A 3-byte postamble.  A byte with a one in **position 0** and zeros in
+   positions 1-7, followed by two all zero bytes.
+
+The format of each record is shown in figure 2-38.  Note that the tape can
+be read in either direction.  When the tape is read forward, the preamble
+produces 23 zeros followed by a one; when the tape is read backward, the
+postamble produces 23 zeros followed by a one.  This is the synchronization
+pattern required by the reading circuits in order to locate the beginning
+of a record and start reading.
+
+#### Tape Commands
+
+Input-output instructions are sent from the processor to the I/O controller
+to control the tape units.  In turn, the I/O controller decodes the in-
+structions and sends commands to the tape motion control circuits to
+manipulate the tape.  The input-output instructions related to tape oper-
+ation and the action that each instruction produces is described in the
+following paragraphs.
+
+Figure 2-25 illustrates the I/O instructions.  Note that the two low-
+order bits of the IWL select tape unit and that the IWR determines the
+action to be taken.  Each instruction is described below; the number
+given before the instruction title is the octal value of the IWR for that
+instruction.
+
+a. **000-Start Tape Forward at Normal Speed with Erase.**  
+   This instruction
+   is normally given at the beginning of a writing sequence.  It starts
+   the tape moving forward at 10 inches per second and erases it until
+   a write instruction is given.  Approximately 30 milliseconds are re-
+   quired for the tape to reach a stable operating speed of 10 ips.
+
+
+g. **007 or 207-Transfer Byte.**  
+   This instruction controls the transfer of
+   characters to and from the tape.  The transfer is controlled by a busy
+   (not ready) condition within the tape control circuits, and the in-
+   struction can be executed in two modes: (1) stall if busy (007), and
+   (2) skip if busy (207).  In the stall-if-busy mode, the program stops
+   at the transfer byte instruction until a tape sprocket signal is gen-
+   erated, indicating that a byte has been written or read.  In the skip-
+   if-busy mode, the program automatically skips the next instruction.
+
+h. **010-Set Write Mode.**  
+   This instruction starts the write operation and
+   begins the timing sequence that controls the writing frequency, loads
+   and shifts the tape buffer, and generates the sprocket signal.
+
+i. **011-Set Read Mode.**  
+   This instruction activates the tape read circuits.
+   It is executed only once in a normal tape read sequence, and setting
+   of the read condition resets the write condition.
+
+j. **012-Rewind.**  
+   This instruction sets a rewind flip-flop for the speci-
+   fied tape.  This flip-flop is reset only by the clip-in signal, which
+   indicates that the tape is fully rewound.  This permits each tape to
+   rewind independently of operations going on in other tape units.
+
+---
+
+### Tape Unit Selection
+
+The circuits that select the tape unit to be used are shown on sheet 2 of
+the I/O controller logic diagram.  Their purpose is to choose one of four
+possible pairs, and then select one of the two tapes in the pair.
+
+A series of gates and three latches determine which pair of tape units is
+selected.  When power is first applied or whenever the general clear sig-
+nal is given, these latches are set so that pair 1, the pair of units that
+is standard in the 1501, is selected.  This causes the PAIR-1 signal to be
+distributed within the tape control circuits.
+
+The pair selected can only be changed by a Read Status I/O instruction
+that specifies a tape other than the current tape.  In this case, the
+Read Status instruction causes the tape selection circuits to examine
+positions 3-5 of the IWR (MDR 3-5) and reset the latches based upon the
+tape pair selected by these bits.
+
+A tape select flip-flop chooses the tape unit within a pair.  When the
+PROGRAM LOAD switch is activated, this flip-flop is switched to the
+second tape.  Thus, when the unit is started, the first program is loaded
+from the second tape in pair 1.
+
+The state of the tape select flip-flop is then controlled by bits OP0,
+1, and 2 of the I/O instructions.  When both bits are 0, the flip-flop
+is left unchanged; thus, the current tape remains selected.  A one in
+
+
+bit 0 selects tape A (the first tape) and a one in bit 1 selects tape B
+by switching the tape select flip-flop to the proper state.  Note that
+a switch on the I/O controller board can reverse the normal selection.
+
+### Tape Multiplex Circuits
+
+Shown on sheet 10 of the I/O controller logic diagram is a group of cir-
+cuits called the tape multiplex circuits.  The purpose of these circuits
+is to control the exchange of data and motion control signals between the
+I/O controller and the first pair of cartridge tape units.  The additional
+tape units, which are housed in the Model 1533, include a tape multiplexer
+board that performs the same general function as the tape multiplex cir-
+cuits shown on sheet 10 do for the first pair.
+
+The tape multiplex circuits are divided into three groups.  The top group
+on the sheet gates data and control signals to the tape unit A; the
+second group of circuits performs the same function for tape unit B.
+Shown at the bottom of the sheet is the third group of circuits mentioned
+above.  The purpose of this group is to gate signals from both tape units
+onto one set of lines to be processed in the I/O controller.
+
+The first group of circuits is enabled when pair 1 is selected and the
+TAPE A signal is active; the second group is enabled by the combination
+of the pair 1 signal and an inactive TAPE A signal, which indicates that
+tape B has been chosen.  Since both groups of circuits are identical,
+only the tape A circuits are discussed.
+
+One of the two control flip-flops in these circuits is the ERASE-A-F/F.
+When the start-tape-forward-at-normal-speed-with-erase instruction is
+executed, the SET-ERASE signal is gated to set the erase flip-flop.  The
+gating signal is produced by the fact that pair 1 and tape A have been
+selected.  The erase flip-flop is cleared by the reverse signal or the
+general clear signal.
+
+The output of the erase flip-flop is combined in two NAND gate write
+drivers (103 and 106) with the data to be written on the tape.  Since
+there is no data to be written until the write flip-flop is set to gate
+the data to these circuits, the output of the write drivers is held so
+that they drive in one direction without change, effectively erasing the
+tape.  When the data is available, it alternates the driver output as
+described in the discussion of recording.  The erase flip-flop is cleared
+by the general clear signal and any operation that runs the tape in re-
+verse.
+
+A transistor monitors the write line to the tape unit.  Whenever an erase
+or a write operation is begun and the writing circuit is broken, this
+transistor supplies a high to a 2-input gate and produces the set write
+fault (SWF) signal.  This signal is gated by the write signal to clear
+the RUN flip-flop and set the RUNAWAY flip-flop.
+
+
+The next control flip-flop to be discussed is the rewind flip-flop.  This
+flip-flop is set by the Rewind instruction when tape A of pair 1 is
+selected.  It is cleared either by the general clear signal or the CLIP-
+IN-A signal, which indicates that tape has fully rewound and the clip has
+returned to the home position.
+
+Whenever the rewind flip-flop is set, it produces three commands to tape
+unit A.  They are: REV-A (reverse), THS-A (tape high speed), and RUN-A.
+These commands can also be activated by signals from the control circuits
+on sheet 2; however, the rewind flip-flop produces them directly.  This
+allows the control circuits to send a rewind command for one tape unit
+and permits that tape unit to accomplish the rewind operation while the
+control circuits deal with another tape unit.
+
+The three commands mentioned above (REV-A, THS-A, and RUN-A) and a fourth
+command TCA (tape control A) can be produced by signals from the control
+circuits, as follows:
+
+a. REV-A is produced whenever the forward-reverse flip-flop is set to
+   reverse and tape A and pair 1 are selected.
+
+b. THS-A is produced directly from the high-speed flip-flop output.
+
+c. RUN-A and TCA are produced when the RUN flip-flop is set and tape A
+   of pair 1 is selected.
+
+The circuits shown at the bottom of sheet 10 process the following signals:
+
+a. CART-IN (cartridge in).  One of these signals, which indicates that
+   the tape cartridge is in place, is available from each tape unit.
+   The pair 1 selected and the tape A or B signal gates the CART-IN sig-
+   nal from the active tape to the single CART-OUT line to the accumula-
+   tor on sheet 1, where it becomes bit 4 of the status word.
+
+b. CLIP-IN.  This signal is handled in the same way as the CART-IN signal
+   mentioned above.  It indicates that the tape clip is in the home
+   (fully rewound) position.  A CLIP-OUT signal is gated to the accumu-
+   lator to become bit 5 of the status word and to the control circuits
+   where it clears the RUN flip-flop if the tape is operating in reverse
+   and the clip reaches the home position.
+
+c. EOT (end of tape).  An end-of-tape marker is placed approximately 10
+   inches from the end of the tape supply.  This signal is gated from
+   the active tape to the accumulator where it becomes bit 6 of the
+   status word.
+
+d. DATA-Q and PULSED ENERGY.  These signals are the result of sensing
+   data on the active tape, and they originate in the tape amplifier.
+   Their use is discussed in the description of the read circuits.
+
+
+in the tape multiplex circuit they are simply accepted and gated to
+the read circuits whenever pair 1 is selected.
+
+### Write Clock
+
+Timing of the data written on the tape is developed by two interconnected
+shift registers shown in the lower left corner of sheet 3 of the I/O con-
+troller logic diagram.  The TX signal from the processor, which occurs
+once every microsecond, clocks one of the registers.  This register is
+connected so that the output of its most significant stage is an 8-micro-
+second squarewave.  Thus, the first register devides by eight.  This is
+used as the clock input to the second register, which is also connected
+to divide by eight.  Thus, the output of the most significant stage of the
+second register is a 64-microsecond squarewave.  Note that the write clock
+runs continuously whether or not the output is used.
+
+### Writing on the Tape
+
+After the instruction to move the tape is given, a short delay is intro-
+duced by the processor program to allow the tape to reach its operating
+speed of 10 ips.  Then the Set Write instruction is executed; this sets
+the write flip-flop (110/111).  The output of the write flip-flop gates
+the output of the write clock to step the bit counter (141) and to shift
+the tape data shift register shown on sheet 1.  This starts the byte held
+in the shift register moving serially into the phase encoder shown in the
+lower center of sheet 3.
+
+The phase encoder is made up of a flip-flop (166) and two NAND gates
+(164 and 165).  Applied to one input of each NAND gate is the write clock
+signal.  Applied to the second inputs of these NAND gates is the data bit
+(WR-DATA) to be encoded, positive (P-WR-DATA) at one NAND gate and in-
+verted (N-WR-DATA) at the other.
+
+Timing diagram 2-39 shows the write clock signal (D13-6), the P-T-SHIFT
+signal (which shifts the data serially to the phase encoder), the bit
+periods and their contents, and the WR-DATA signals that this bit con-
+figuration produces.  When WR-DATA signals and the write clock are applied
+to the two NAND gates in the phase encoder, they produce the outputs
+shown in the timing diagram.  To encode a zero, NAND gate 164 supplies a
+direct set signal to the phase encoder flip-flop 166; to encode a one,
+NAND gate 165 supplies a direct reset signal to the phase encoder flip-
+flop.  The effect of these signals on the phase encoder output (D10-9,
+P-DATA-IN) is shown in figure 2-39.
+
+Two other signals are applied to the phase encoder flip-flop:
+
+a. The P-WR-DATA signal is applied to the D-input of the flip-flop.  As
+   shown in the timing diagram, this signal is high when a one is being
+   encoded and is low when a zero is being encoded.
+
+
+b. The write clock signal from D14-11 is applied to the clock input of
+   the phase encoder flip-flop.  On every positive going transition, this
+   signal transfers the value of the P-WR-DATA signal to the phase en-
+   coder flip-flop.
+
+The effect of the clocked input on the phase encoder is shown in the
+timing diagram.  Note that it produces the transition in the P-DATA-IN
+signal when two bits of the same value (1 or 0) are transmitted in suc-
+cession.  When the bit value changes from one bit period to the next, the
+transition in the P-DATA-IN signal is caused by the direct set and reset
+inputs.
+
+The bit counter on sheet 3 counts the signals that shift the tape shift
+register and, when eight bits have been counted, it generates the TP-SPR
+
+
+(tape sprocket) signal.  This transfers the next byte to be written from
+the accumulator to the tape shift register, and it in turn is shifted
+through the phase encoder.
+
+Writing continues as long as the write flip-flop remains set.  The WRITE-
+F/F signal gates the write clock signal to step the bit counter and to
+produce the shift pulses for the tape shift register.  It also gates the
+data from the phase encoder to the tape.
+
+The way in which writing is terminated depends upon the program.  However,
+there are three ways in which the write flip-flop can be cleared: (1)
+general clear (N-GEN-CLEAR), (2) read flip-flop is set, or (3) tape is
+switched from forward to reverse.
+
+### Reading from the Tape
+
+A brief review of the recording technique and format is required before
+the reading process is described.  As discussed earlier in this section,
+data is recorded on the cartridge tapes in phase-encoded form, and in
+order to distinguish between the significant and non-significant transi-
+tions a start pattern is required to allow the reading circuits to estab-
+lish synchronization with the data.  When the tape is read in the forward
+direction, the start pattern is called the preamble.
+
+The preamble, which consists of 23 zeros followed by a one, performs three
+functions:
+
+a. It allows the reading circuits to synchronize reading with the tape
+   flux changes.
+
+b. It allows the reading circuits to distinguish between a data record
+   and tape noise.
+
+c. It allows the reading circuits to locate the first bit of data on the
+   tape.
+
+If the tape is read while moving in reverse, the postamble appears in the
+same form as the preamble, 23 zeros followed by a one.  However, the pri-
+mary purpose of the postamble is to allow proper reading of the last bit
+in the record when the tape is being read forward.  If the postamble were
+not used, the last bit of the record would take on undesirable character-
+istics due to the lack of flux changes following the last bit.  Essentially,
+the postamble terminates the record so that the last bit of valid data can
+be recovered properly.
+
+In the tape amplifier, the data read from the tape is routed through two
+separate paths.  The first path is the energy detector circuit, the pur-
+pose of which is to determine the presence of a signal on the tape.  The
+signal from this circuit is labeled PULSED-ENERGY.  The second path is a
+
+
+data amplifier and its output is labeled DATA-Q.  The reason for routing
+the signal read from tape through two circuit paths is discussed below.
+
+In phase encoding, the information is carried by the transitions of the
+waveform, rather than by the amplitude.  The signal read from the tape is
+amplified and clipped and is therefore relatively immune to amplitude
+variations.  At this high gain, the background noise in the absence of
+tape signals is sufficient to make it difficult to determine when legiti-
+mate data is present.  To solve this problem, a separate, limited-gain
+path is provided after the second stage of an amplification.  This channel
+feeds an energy detector which responds to signals of pre-determined
+amplitude and duration:  greater than 30 percent of nominal signal ampli-
+tude and repeating within 250 microseconds for at least 1 millisecond.
+The circuits in the tape amplifier determine that the amplitude require-
+ments are met, while the tape reading circuits in the I/O controller deter-
+mine that the pulsed energy signal meets the timing requirements.  Only
+when both the amplitude and timing requirements are met are the reading
+circuits allowed to recognize the DATA-Q signal.
+
+Reading is ordinarily done with the tape moving forward.  In this case,
+the processor sends the Start-Forward-at-Normal-Speed-Without-Erase com-
+mand to the I/O controller, and the motion control circuits start the tape
+moving forward at 10 ips.  If the Start-Tape-Reverse-at-Normal-Speed com-
+mand is given, the motion control circuits move the tape in reverse at
+10 ips.  Erasing is automatically prevented when the tape is moving back-
+ward.
+
+After the tape reaches operating speed and the Start Read command is given
+to set the read flip-flop, the next step is to synchronize the operation
+of the reading circuits with the data on the tape.  This is accomplished
+by the circuits on sheet 4 of the I/O controller logic diagram and is
+shown in the timing diagram in figure 2-40.
+
+The first circuit involved is the PULSED-ENERGY one-shot (101, F12-9).
+This one-shot is initially cleared by the general clear signal, and it
+remains cleared until the tape amplifier detects the presence of data on
+the tape.  This is the beginning of a record to be read, and the pulsed
+energy signal is shown on the first line of the timing diagram.
+
+Each negative-going transition triggers the pulsed energy one-shot.  While
+the first 23 zeros in the preamble are being read, this occurs every 64
+microseconds (assuming that the tape speed is the nominal 10 ips).  Thus,
+the output of the PULSED ENERGY one-shot switches and remains in the active
+state as long as data is not interrupted.  This is shown on the third line
+of the timing diagram.
+
+The next one-shot is the ENERGY one-shot (102, F12-7).  Before data on the
+tape is detected by the PULSED ENERGY one-shot, 102 is triggered every
+microsecond by the TX signal.  This keeps the ENERGY one-shot on
+
+
+continuously.  After the PULSED ENERGY one-shot detects the pulsed energy
+signal, its output also triggers the ENERGY one-shot by applying a steady
+low to the active low input.  This allows the delay to expire, and the
+output at F12-7 makes the transition shown in figure 2-40.  This transi-
+tion sets ENERGY flip-flop 105.
+
+The data from the tape (DATA-Q) is routed through two gates to the transi-
+tion detectors.  Both the P-TF (tape forward) and N-TF (tape reverse)
+signals are used as gating signals, thus the tape data can reach the de-
+tectors during either forward or reverse tape motion.
+
+The transition detectors are one-shot multivibrators arranged so that a
+positive-going transition triggers the ones detector and negative-going
+transition triggers the zeros detector.  When the transition occurs, the
+detector output switches.  The output of the transition detectors are ORed
+
+
+in gate 121 so that either transition shifts the output of gate 121 from
+a low to a high.
+
+At this point, the effect of the ENERGY flip-flop 105 on the transition
+detectors is discussed.  When the read flip-flop is not set, the READ-F/F
+signal holds the ENERGY flip-flop 105 in the reset state.  This holds a
+low on the reset input of the ones transition detector (122) and prevents
+ones from triggering the one-shot.  When the read flip-flop is set, ENERGY
+flip-flop 105 is no longer held off and it can be set when energy is de-
+tected by one-shots 101 and 102 discussed earlier.
+
+When the tape amplifier detects the beginning of a record, the pulsed
+energy signal, shown in line 1 of the timing diagram, is present.  This
+triggers the pulsed energy one-shot 101 and retriggers it regularly, thus
+switching pin 9 to a low and keeping it there unless a gap is detected.
+
+The signal at F12-9 is applied to pin 5 of ENERGY one-shot 102.  The
+negative-going transition triggers this one-shot, but since there are no
+more transitions, the delay expires and the output of 102 (F12-7) switches.
+This is shown in line 4 of the timing diagram.  Thus, once the beginning
+of a record has been detected, 102 is reset and remains reset.
+
+When 102 is first reset, the positive-going transition provides the clock
+pulse required to set ENERGY flip-flop 105.  The P-ENERGY F/F signal thus
+goes high and removes the low that held the ones transition detector off.
+
+Before energy was detected, F12-9 and F11-6 were high, producing a low
+at F4-11 and a high at F3-10.  This gates the write clock through gate 113.
+This signal passes through gate 114 and triggers the tracking window one-
+shots 127 and 128, forming the tracking window in synchronism with the
+signal (the write clock) that was used to write the tape.
+
+When energy is detected, this path is blocked and the zero transitions are
+allowed to trigger the tracking window one-shots until the energy flip-
+flop is set.  Then, the path through gate 118 is blocked.
+
+Gate 120 now becomes the path to trigger the tracking window one-shots.
+If either a one or a zero transition occurs within the window, it re-
+triggers the tracking window one-shots.  If no transition occurs within
+the window, the phase error flip-flop (132) is set and the tape error
+F/F signal is produced at gate 133A.
+
+Each time the signal N-01 WINDOW signal is produced, it causes the P-T-
+SHIFT signal to occur.  This shifts the incoming serial data through the
+tape shift register.  A NAND gate monitors the high and low order bits of
+the register.  When this gate senses the end of the third byte of the
+preamble, it produces the SET-READ-GATE signal.  This sets the TAPE-READ-
+GATE-F/F on sheet 4, which was cleared when the read operation began, and
+produces the read gate signal.
+
+
+When the read gate signal is active, it allows the N-01-WINDOW signal
+that produces shift pulses to also step the bit counter.  Every 8 bits,
+this counter produces a byte complete signal.  In turn, this signal trans-
+fers the byte in the tape shift register to the tape data buffer and pro-
+duces the TP-SPR (tape sprocket) signal to notify the processor that a
+byte is available.
+
+### Tape I/O Stall Circuits
+
+The keyboard stall circuits were discussed earlier in this section, and
+the tape I/O stall circuits operate in a similar manner.  The primary
+difference is that the tape I/O stall circuits operate when the processor
+is writing on the tape as well as reading from it.  Of course, the key-
+board stall circuits operate only when the processor is reading the key-
+board input.
+
+Shown on sheet 5 of the I/O controller logic diagram are the circuits that
+generate the I/O stall signal sent to the processor.  The action that the
+processor takes on the stall signal depends upon whether the Transfer Byte
+instruction is 007, Transfer Byte-Unconditional, or 207, Transfer Byte-
+Skip on Busy.  In the former, the processor remains at the current instruc-
+tion until the byte is transferred.  In the latter, the processor skips
+one instruction and proceeds.  Another Transfer Byte instruction must then
+be executed to transfer the byte.  The timing of when this instruction
+occurs is determined by the program.
+
+The circuits that generate the I/O stall signal for tape data transfer are
+shown in the center of sheet 5, and the I/O stall flip-flop is shown at
+the right.  Note that the I/O stall flip-flop can be set by any one of
+three sources (keyboard, tape, or serial I/O channel).
+
+The TX signal from the processor samples NAND gate 135.  If a Transfer
+Byte instruction is being executed and a tape unit has been selected, the
+condition of flip-flop 137 determines whether or not the I/O stall flip-
+flop will be set.
+
+The TP-SPR (tape sprocket) signal indicates that a tape byte has been
+processed.  In a reading operation, this indicates that a byte is ready
+for the processor; in the writing operation, it indicates that the tape
+can accept the next byte from the processor.  Applied to the clock input
+of flip-flop 123, the tape sprocket signal sets this flip-flop to record the
+fact that a byte has been processed.
+
+NAND gate 124, which monitors the state of flip-flop 123, is checked at
+TE of cycle 13.  If flip-flop 123 was set, this NAND gate sets flip-flop
+137.  Then, at TX time, the I/O stall flip-flop cannot be set.  If, how-
+ever, the tape sprocket signal had not set flip-flop 123, flip-flop 137
+is still cleared at TX time and the I/O stall flip-flop is set.
+
+
+Assuming that flip-flop 137 was set, the I/O clear pulse, which follows
+TX, enables NAND gate 136.  This clears both flip-flops, 123 and 137, re-
+turning the two flip-flops to their original condition in preparation for
+the next tape sprocket signal and Transfer Byte instruction.
+
+Assume next that a tape sprocket signal had not set 123 and consequently
+137 was also left in the cleared condition.  In this case, the I/O stall
+flip-flop was set and the processor reacted as described earlier.  The
+tape sprocket then arrives.  It sets 123, and then 137 is set.  Either the
+current Transfer Byte instruction (if the processor stopped) or the next
+Transfer Byte instruction (if the processor skipped) transfers the byte
+and clears both flip-flops.  Note also that the P-W-OR-R (write or read)
+signal clears both flip-flops when it goes low at the end of a write or
+read operation.
+
+The I/O stall flip-flop is cleared by the general clear signal and at the
+beginning of every I3 cycle.  I3 is the cycle during which an instruction
+is read from memory.  Clearing the stall flip-flop at the beginning of
+this cycle has the effect of removing the conditions that were used in the
+previous instruction.
+
+### Serial I/O Channel Circuits.
+
+Sheets 7, 8, and 9 of the I/O controller logic diagram make up the serial
+I/O channel control circuits.  These circuits transfer data between the
+Intelligent Terminal and any of the other devices attached to the SIO
+coaxial cable.  Up to 64 units can be attached to the cable.
+
+Information on the SIO line is in phase-encoded form, and the data is self-
+synchronizing in that the receiver regenerates the timing signal from the
+phase-encoded data.  During the phase-encoded communication, information
+is transmitted as energy level changes (transitions) along the coaxial
+cable.  Positive-going transitions signify one-bits; negative-going tran-
+sitions signify zero-bits.  Obviously, intermediate transitions must take
+place between successive bits.  The intermediate transitions are termed
+"insignificant" transitions, whereas information-bearing transitions are
+termed "significant" transitions.  Receiver circuits differentiate be-
+tween the significant and insignificant transitions.  (Refer to figure
+2-41 for a diagram showing a typical data transmission.)
+
+The intelligent terminals connected to the I/O cable may be operated in
+either of two modes, master or slave.  Only a unit operating in the master
+mode can initiate transmission.  Selection of master or slave modes of
+operation is a function of the processor program.

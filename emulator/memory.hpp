@@ -107,3 +107,5 @@ public:
 		std::cout << std::endl;
 	}
 };
+
+void test_memory_t();
