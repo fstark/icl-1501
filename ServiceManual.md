@@ -16,6 +16,11 @@ components are printed circuit boards.  Two cartridge tape drives are
 mounted on the upper right section of the unit.  Magnetic tape cartridges
 loaded on these drives provide programs and store data for the computer.
 
+![alt text](images/image.png)
+
+*Figure 1-1. Model 1501 Intelligent Terminal*
+
+
 A CRT and keyboard are housed in the terminal.  These components allow the
 operator to perform the data processing for which the terminal is intended.
 The keyboard allows the operator to enter data and control operation of the
@@ -56,23 +61,20 @@ selecting and ordering options.
 
 Table 1-1.  Models and Options Available
 
-```
----------------------------------------------------------------
-Model                                           Part Number
----------------------------------------------------------------
-1501 Intelligent Terminal . . . . . . . . . . . 001-003200-XXX
-1501-FF Intelligent Terminal . . . . . . . . .  001-002994-XXX
-1501-CL Intelligent Terminal . . . . . . . . .  001-001000-XXX
-1534A Asynchronous Communications Adapter . . . 003-001907-XXX
-1535A Binary Synchronous Communications Adapter 003-001907-039
-1530-1, 13-Key Numeric Pad . . . . . . . . . .  003-003233-XXX
-Booster Transformer Option for 100 VAC Input .  003-003350-006
-*Dual SIO Option . . . . . . . . . . . . . . .  003-002830-008
-1533 Dual Drive . . . . . . . . . . . . . . .   003-001574-XXX
----------------------------------------------------------------
-```
+| Model                                         | Part Number         |
+|-----------------------------------------------|---------------------|
+| 1501 Intelligent Terminal                     | 001-003200-XXX      |
+| 1501-FF Intelligent Terminal                  | 001-002994-XXX      |
+| 1501-CL Intelligent Terminal                  | 001-001000-XXX      |
+| 1534A Asynchronous Communications Adapter     | 003-001907-XXX      |
+| 1535A Binary Synchronous Communications Adapter| 003-001907-039      |
+| 1530-1, 13-Key Numeric Pad                    | 003-003233-XXX      |
+| Booster Transformer Option for 100 VAC Input  | 003-003350-006      |
+| *Dual SIO Option*                             | 003-002830-008      |
+| 1533 Dual Drive                              | 003-001574-XXX      |
 
 *Must be included with 1501-CL
+
 
 ## 1-3. LOCATION OF MAJOR COMPONENTS.
 
@@ -88,34 +90,9 @@ the Operator Instructions Manual; however, those of interest to the field
 service engineer are summarized in the following paragraphs.
 
 
-```
-               CRT ASSEMBLY
-                   |
-            +---------------+
-            |               |
-  SWITCH    |               |   POWER SUPPLY
- ASSEMBLY   |               |        |
-    |       +---------------+        |
-    |                               TAPE DRIVE 1
-    |                               TAPE DRIVE 2
-    |
-KEYBOARD ASSEMBLY
-|
-MOTION CONTROL
-BOARDS
-|
-COMMUNICATIONS BOARD
-|
-+------------------+ ON/OFF SWITCH
-| INPUT/OUTPUT | |
-| CONTROLLER BOARD | TAPE AMPLIFIER
-+------------------+ BOARD
-|
-PROCESSOR/MEMORY
-BOARD
-```
+![alt text](images/image-1.png)
 
-Figure 1-2. Location of Major Components
+*Figure 1-2. Location of Major Components*
 
 
 Following are the three controls used to apply power and start the terminal:
@@ -209,11 +186,9 @@ bits per inch.  Capacity of each cartridge is 900 records of 143 bytes
 each.  Reading and writing speed is 10 inches per second, and the tape is
 driven at 40 inches per second during search and rewind operations.
 
-```
-A picture of the cartridge, with "write pin" and "leader eyelet" indicated.
-```
+![A picture of the cartridge, with "write pin" and "leader eyelet" indicated.](images/image-2.png)
 
-(Figure 1-3. Tape Cartridge)
+*Figure 1-3. Tape Cartridge*
 
 ### Dual Serial Input-Output (SIO).
 
@@ -322,8 +297,72 @@ basic flow of data that can be accomplished rather than how data is pro-
 cessed by any specific program.  Refer to the block diagram in figure 2-1
 for the following discussion.
 
+![alt text](images/image-3.png)
+
+*Figure 2-1. Model 1501 Intelligent Terminal Block Diagram*
 
 
+### Organization and Use of the Memory.
+
+The memory in the 1501 Intelligent Terminal is expandable from a minimum of 4,096 bytes to 16,384 bytes in 4,096-byte increments. The memory is housed on the processor board.
+
+The processor controls access to the memory through an address net and access control circuits. Either the processor or the I/O controller can supply an address to the address net; however, access to the memory is coordinated with the basic processor timing cycles, and the controller is allowed to gain access to memory only at specific points in the processor cycle.
+
+Data to be stored in memory is routed to a memory input multiplexer, and is gated through the multiplexer under control of the processor. When data is read from memory, it is available through the memory output multiplexer. There, it is available to the processor and the I/O controller.
+
+### Exchange of Data With the I/O Controller
+
+The I/O controller is a printed circuit board mounted in the terminal. Its purpose is to control the keyboard, the CRT, the tape drives, and the serial I/O channel. It coordinates the exchange of data between these units and the memory.  
+
+The processor initiates operation of the I/O controller when it decodes an instruction read from memory and finds it is an I/O instruction. (All I/O instructions have an operation code that begins with 17.) Sensing that the current instruction is an I/O instruction, the processor gates the instruction to the I/O controller for execution. There, it is decoded further to determine which device is selected and what action is required. From this point on, the I/O controller takes the action necessary to carry out the instruction independently of the processor except when data must be exchanged with the memory.  
+
+Functions performed by the I/O controller are:  
+
+a. Produce the CRT display.  
+b. Control the keyboard and accept keyboard inputs.  
+c. Control the tape drives, including reading and writing.  
+d. Control the exchange of data through the communication adapters.  
+e. Control operation of the serial I/O channel.  
+
+---
+
+### Display Generation
+
+The standard display unit is a 5-inch CRT that is operated by circuits in the I/O controller. The display area on the CRT consists of 8 rows of 32 character positions. To initiate the display on a page of data, the processor sends an I/O instruction to the I/O controller. This instruction selects the CRT circuits and specifies the memory location of the data to be displayed. Since each page on the display consists of 256 characters, one "page" of memory, which consists of 256 bytes, is required to produce the display. Once the processor transfers the page number to the I/O controller, the controller requires no additional processor inputs to produce the display.  
+
+The display is produced by a scanning process similar to that in a television receiver, except that the fast scan is vertical and the slow scan is horizontal. Each character is composed of columns of dots. As the scan approaches each character position, the controller gains access to the selected memory page and reads the code for the character to be displayed in that specific position. Based on that code, the controller again gains access to memory and this time reads the dot pattern required to construct the selected character. The dot pattern then causes the CRT beam to be unblanked at the appropriate position to produce dots that form the selected character. The only signals routed to the CRT assembly by the controller are the unblanking signals and the triggers required to begin and end the vertical and horizontal scans.
+
+Once a page number has been selected for display, the I/O controller continues to read that page and produce the display. Of course, the processor can store new data in the selected page and this causes the display to change on the screen.
+
+**Keyboard Inputs.**
+
+Each time that the processor is ready to read the keyboard input, it branches to a program routine required to accept the keyboard input. It can either wait until the operator depresses a key or, if the keyboard input is not ready, it can proceed with the program and return later to read the keyboard.
+
+An encoder built into the keyboard converts each key output into a 6-bit character code corresponding to the physical location of the key. Three control signals (alpha, numeric, and control) accompany the keycode. In the I/O controller, the control signals are converted to a 2-bit code to indicate whether the keyboard character is the control key and whether the keyboard is in the "lower case" or "upper case" mode. The 2-bit control code is then combined with the 6-bit character code to form a byte in the accumulator in the controller. At this point, the processor can examine and act upon the keyboard input.
+
+**Operation of the Cartridge Tape Units.**
+
+Except for the 1501-CL model, two cartridge tape drives are mounted on the top of the terminal. A cartridge holds 100 feet of narrow (0.15 inch wide) magnetic tape that records one channel of digital data in serial form. The processor controls these tape units by issuing I/O instructions to the I/O controller.
+
+Circuits required to operate two tape drives are housed on the I/O controller board. Optional drives are available in a Model 1533 Dual Drive. A tape multiplex board in the Model 1533 contains circuits that are duplicates of some of the tape control circuits on the I/O controller board. Up to three Model 1533 Dual Drives can be used with each 1501.
+
+Tape operation is initiated by I/O instructions sent from the processor to the I/O controller. These instructions first select the drive to be used, and then start the tape motion required. Read or write instructions then establish the mode.
+
+When reading, serial data from the tape is moved into the I/O controller and converted to parallel form. The controller then notifies the processor when a byte is available, and the processor accepts the byte by issuing another I/O instruction. When writing, the processor transfers the byte to be recorded to the I/O controller. In turn, the controller converts the data to serial form, encodes it in the form required for recording, and shifts it serially to the tape unit.
+
+**Operation of the Communications Adapters.**
+
+Available for installation in the communication slot of the terminal are communication adapter boards that allow the terminal to communicate with other terminals or similar equipment over long distances via telephone or teletype lines. The circuits on these boards are basically serial-to-parallel and parallel-to-serial converters and timing synchronizers. Connected to each communications board is an external MODEM that transmits and receives over the long distance lines.
+
+The processor initiates the communication by sending an I/O instruction to the I/O controller that selects the communication channel for operation. The I/O controller then activates the adapter board. To coordinate the operation, several timing and control signals are exchanged directly between the communication adapter and the processor; however, the actual data transfer takes place between the I/O controller and the adapter boards.
+
+**Serial Input-Output Channel.**
+
+All external peripheral equipment operates on the serial I/O channel. The channel is a single coaxial cable terminated at both ends. Up to 64 units can communicate with one another over this link, with the Intelligent Terminal acting as master and the peripheral units, such as printers and tape units, acting as slaves.
+
+The processor initiates the operation by sending an I/O instruction to the I/O controller. In turn, the controller begins transmission on the line, addresses the selected unit (each unit has an address selection switch or plug), and sends commands as required to execute the instruction from the processor. The selected peripheral unit responds by returning its address, to verify that the link is established, and the control signals necessary to accomplish the exchange between it and the Intelligent Terminal.
+
+It should be noted that all information sent over the serial I/O channel is in serial, phase-encoded form. The I/O controller accomplishes the synchronization required to establish the link. It also converts data from parallel to serial for transmission and serial to parallel for reception.
 
 
 
@@ -376,6 +415,8 @@ c. An accumulator, which normally holds one of the operands involved in
    on the I/O controller board in order to simplify the I/O wiring.
 
 
+![Diagram of all processor blocks interconnection](images/image-4.png)
+
 
 #### Word Formats.
 
@@ -389,17 +430,17 @@ and (2) the IWL, instruction word-left. Memory addresses are also made
 up of two bytes, left and right, while data is handled as a single byte.
 
 
-    IWL                            IWR
+```
+                    IWL              IWR
 
-
-(STORED AT EVEN BYTE ADDRESS) (STORED AT ODD BYTE ADDRESS)
-
-┌─┬─┬─┬─┬─┬─┬─┬─┐ ┌─┬─┬─┬─┬─┬─┬─┬─┐
-│1│0│0│0│0│0│0│0│ │1│0│0│0│1│0│0│0│
-└─┴─┴─┴─┴─┴─┴─┴─┘ └─┴─┴─┴─┴─┴─┴─┴─┘
-OPERATION CODE ADDRESS
-200 210
-
+             STORED AT EVEN    STORED AT ODD
+              BYTE ADDRESS      BYTE ADDRESS
+            ┌─┬─┬─┬─┬─┬─┬─┬─┐ ┌─┬─┬─┬─┬─┬─┬─┬─┐
+            │1│0│0│0│0│0│0│0│ │1│0│0│0│1│0│0│0│
+            └─┴─┴─┴─┴─┴─┴─┴─┘ └─┴─┴─┴─┴─┴─┴─┴─┘
+             OPERATION CODE        ADDRESS
+                   200               210
+```
 
 *Figure 2-3. Typical Instruction Format*
 
@@ -431,19 +472,22 @@ of an instruction, or a data byte.
 
 
 
+```
+LEVEL 0   *P00*   *P10*   *P20*   *P30*    P40     P50     P60     P70
+LEVEL 1   *P01*   *P11*   *P21*   *P31*    P41     P51     P61     P71
+LEVEL 2   *P02*   *P12*   *P22*   *P32*    P42     P52     P62     P72
+LEVEL 3   *P03*   *P13*   *P23*   *P33*    P43     P53     P63     P73
+LEVEL 4    P04     P14     P24     P34     P44     P54     P64     P74
+LEVEL 5    P05     P15     P25     P35     P45     P55     P65     P75
+LEVEL 6    P06     P16     P26     P36     P46     P56     P66     P76
+LEVEL 7    P07     P17     P27     P37     P47     P57     P67     P77
 
-     LEVEL 0     P00 P10 P20 P30 P40 P50 P60 P70
-     LEVEL 1     P01 P11 P21 P31 P41 P51 P61 P71
-     LEVEL 2     P02 P12 P22 P32 P42 P52 P62 P72
-     LEVEL 3     P03 P13 P23 P33 P43 P53 P63 P73
-     LEVEL 4     P04 P14 P24 P34 P44 P54 P64 P74
-     LEVEL 5     P05 P15 P25 P35 P45 P55 P65 P75
-     LEVEL 6     P06 P16 P26 P36 P46 P56 P66 P76
-     LEVEL 7     P07 P17 P27 P37 P47 P57 P67 P77
-
-
-SECTION 0 SECTION 1 SECTION 2 SECTION 3 SECTION 4 SECTION 5 SECTION 6 SECTION 7
-4K 8K 12K 16K
+        SECTION SECTION SECTION SECTION SECTION SECTION SECTION SECTION
+           0       1       2       3       4       5       6       7
+        <----- 4K ----->
+        <------------- 8K ------------->
+        <---------------------------- 16K ---------------------------->
+```
 
 Figure 2-4. Organization of Memory
 
@@ -451,33 +495,27 @@ Figure 2-4. Organization of Memory
 
 
 
-
- ┌───────┬───────────┬──────────┬─────────────┐
- │ 15-14 │ 13 - 10   │ 9 - 8    │ 7 - 0       │
- └───────┴───────────┴──────────┴─────────────┘
-   NOT     SECTION     LEVEL       BYTE
-   USED                            NUMBER
-                 PAGE NUMBER
-
-
-
+```
+ ┌─────┬───────────┬─────┬───────────────────────┐
+ │15 14│13 12 11 10│ 9  8│ 7  6  5  4  3  2  1  0│
+ └─────┴───────────┴─────┴───────────────────────┘
+   NOT    SECTION   LEVEL        BYTE
+   USED└── PAGE NUMBER ──┘      NUMBER
+```
 
 Figure 2-5. Memory Address Format
 
 
 
-
-
-
-
-
-15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0
+```
+ 15 14 13 12 11 10  9  8  7  6  5  4  3  2  1  0
 ┌──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┐
-│ 0│ 1│ 1│ 0│ 1│ 0│ 1│ 0│ 0│ 0│ 0│ 0│ 0│ 0│ 0│ 0│
+│  │  │ 0│ 0│ 1│ 1│ 1│ 0│ 1│ 1│ 0│ 1│ 0│ 0│ 0│ 0│   P16-320
 └──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┘
-SECTION 1 LEVEL 6 BYTE 320₈
-PAGE 16 P16-320
-
+      │ SECTION│  LEVEL │         BYTE 
+      |    1   │    6   │          320₈
+      └──── PAGE 16 ────┘
+```
 
 
 
@@ -493,22 +531,14 @@ The contents of two stack pointer addresses are shown in figure 2-7. Note that t
 
 
 
-
-7 6 5 4 3 2 1 0
-┌──┬──┬──┬──┬──┬──┬──┬──┐
-│ │
-└──┴──┴──┴──┴──┴──┴──┴──┘
-BYTE
-FIRST STACK POINTER ADDRESS
-
-15 14 13 12 11 10 9 8
-┌──┬──┬──┬──┬──┬──┬──┬──┐
-│ U│ V│ │
-└──┴──┴──┴──┴──┴──┴──┴──┘
-SECTION LEVEL
-SECOND STACK POINTER ADDRESS
-
-
+```
+    7  6  5  4  3  2  1  0        15 14 13 12 11 10  9  8
+  ┌──┬──┬──┬──┬──┬──┬──┬──┐      ┌──┬──┬──┬──┬──┬──┬──┬──┐
+  │  │  │  │  │  │  │  │  │      │ U│ V│  │  │  │  │  │  │
+  └──┴──┴──┴──┴──┴──┴──┴──┘      └──┴──┴──┴──┴──┴──┴──┴──┘
+           BYTE                       SECTION LEVEL
+ FIRST STACK POINTER ADDRESS    SECOND STACK POINTER ADDRESS
+```
 
 
 *Figure 2-7. Contents of Stack Pointer Addresses*
@@ -526,13 +556,17 @@ Instructions and their corresponding addresses are written in the following form
 The first instruction above (200-377), load 377 into the accumulator, is located at octal location 100 of page 3. P03-100 is the address of the IWL, the 200 byte. The 377 byte (the IWR) is located at the address P03-101. These instructions would be stored in page 3 of memory as shown in figure 2-8.
 
 
-070 ┌───────────────────────────────────────────────────────┐ 077
-│ │
-100 │ 200 377 260 001 230 007 │
-│ │
-110 │ │ 117
-└───────────────────────────────────────────────────────┘
-
+```
+        /     ├─────┼─────┼─────┼─────┼─────┼─────┼─────┼─────┤
+        │ 070 │     │     │     │     │     │     │     │     │ 077
+        │     ├─────┼─────┼─────┼─────┼─────┼─────┼─────┼─────┤
+PORTION │ 100 │ 200 │ 377 │ 260 │ 001 │ 230 │ 007 │     │     │ 107
+OF P03  │     ├─────┼─────┼─────┼─────┼─────┼─────┼─────┼─────┤
+        │ 110 │     │     │     │     │     │     │     │     │ 117
+        │     ├─────┼─────┼─────┼─────┼─────┼─────┼─────┼─────┤
+        │     │     │     │     │     │     │     │     │     │
+        \     ├─────┼─────┼─────┼─────┼─────┼─────┼─────┼─────┤
+```
 
 *Figure 2-8. Typical Location of Instructions in Memory*
 
@@ -556,27 +590,51 @@ Steps D and E again illustrate sequential instruction addressing; however step E
 Steps F, G, and H illustrate sequential execution using the new stack pointer addresses (SP1) to hold the instruction address words. Step H is an exit instruction. This instruction does not contain any "branch to" address. It simply steps the stack pointer counter down one, returning to stack pointer addresses P00-040 and 041 to get instruction address words. The IAW retrieved is 004-002. This is incremented by two to obtain instruction address P02-006, in step I, and thus the program has
 
 
-CONTENTS OF CONTENTS OF
-FIRST STACK POINTER SECOND STACK POINTER
-ADDRESS ADDRESS
-[P00-040] [P00-041] [P00-042] [P00-043]
-SP0 SP1
-IAWL IAWR IAWL IAWR
+```
+         CONTENTS OF        CONTENTS OF
+         FIRST STACK        SECOND STACK
+       POINTER ADDRESS     POINTER ADDRESS
+     │P00-040│ │P00-041│ │P00-042│ │P00-043│
+     └───────┘ └───────┘ └───────┘ └───────┘ 
+             SP0                 SP1
+     ┌─────────────────┐ ┌─────────────────┐      INSTRUCTION   INSTRUCTION
+STEP    IAWL      IAWR      IAWL      IAWR         LOCATION 
+     ┌────────┬────────┐ ┌────────┬────────┐       ┌───────┐     ┌───────┐
+  A  │   050  │   001  │ │    ?   │    ?   │        P01-050       200-000
+     └────────┴────────┘ └────────┴────────┘
+     ┌────────┬────────┐ ┌────────┬────────┐
+  B  │   050  │   001  │ │    ?   │    ?   │        P01-052       102-000
+     └────────┴────────┘ └────────┴────────┘
 
-STEP INSTRUCTION LOCATION INSTRUCTION
-A P01-050 200-000
-B P01-052 102-000
-C P02-000 300-111
-D P02-002 200-001
-E P02-004 123-026
-F P03-026 240-001
-G P03-030 300-222
-H P03-032 140-000
-I P02-006 340-362
-J P02-010 111-056
+     ┌────────┬────────┐ ┌────────┬────────┐
+  C  │   000  │   002  │ │    ?   │    ?   │        P02-000       300-111
+     └────────┴────────┘ └────────┴────────┘
+     ┌────────┬────────┐ ┌────────┬────────┐
+  D  │   002  │   002  │ │    ?   │    ?   │        P02-002       200-001
+     └────────┴────────┘ └────────┴────────┘
+     ┌────────┬────────┐ ┌────────┬────────┐
+  E  │   004  │   002  │ │    ?   │    ?   │        P02-004       123-026
+     └────────┴────────┘ └────────┴────────┘
 
+     ┌────────┬────────┐ ┌────────┬────────┐
+  F  │   004  │   002  │ │   026  │   003  │        P03-026       240-001
+     └────────┴────────┘ └────────┴────────┘
+     ┌────────┬────────┐ ┌────────┬────────┐
+  G  │   004  │   002  │ │   030  │   003  │        P03-030       300-222
+     └────────┴────────┘ └────────┴────────┘
+     ┌────────┬────────┐ ┌────────┬────────┐
+  H  │   004  │   002  │ │   032  │   003  │        P03-032       140-000
+     └────────┴────────┘ └────────┴────────┘
 
-**Figure 2-9. Use of the Stack Pointer**
+     ┌────────┬────────┐ ┌────────┬────────┐
+  I  │   006  │   002  │ │   032  │   003  │        P02-006       340-362
+     └────────┴────────┘ └────────┴────────┘
+     ┌────────┬────────┐ ┌────────┬────────┐
+  J  │   010  │   002  │ │   032  │   003  │        P02-010       111-056
+     └────────┴────────┘ └────────┴────────┘
+```
+
+*Figure 2-9. Use of the Stack Pointer*
 
 Returned to the point at which the branch took place (the next instruction address after the instruction in step E). The stack pointer addresses continue to be P00-040 and 041 unless another stack-and-branch instruction is executed, and the contents of the SP1 locations do not change.
 
