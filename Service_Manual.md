@@ -737,6 +737,9 @@ At the beginning of cycle I3, the address of the instruction to be executed has 
 | 35X  |                       |                          |
 | 37X  |                       |                          |
 |------|-----------------------|--------------------------|
+
+
+
 ```
 
 During the first half of I3, the IWL is read. This byte is then loaded into the operation register, the B register, and the memory data register. At this point, the operation code is decoded and instruction execution can begin.
@@ -744,7 +747,359 @@ During the first half of I3, the IWL is read. This byte is then loaded into the 
 During the second half of I3 the I/O controller gains access to memory. The I/O controller reads either character codes or dot patterns for the CRT display.
 
 
-[FReD PAGE 2-19]
+| Cycle | Half      | Functions                                                                 |
+|-------|-----------|---------------------------------------------------------------------------|
+| I1    | 1st Half  | 1. Using the stack pointer as an address, read the IAWL. <br> 2. Load the IAWL in the MDR |
+|       | 2nd Half  | 1. Add 2 to IAWL (if no branch) <br> 2. Restore the IAWL <br> 3. Load MAR with IAWL or branch address |
+| I2    | 1st Half  | 1. Using the stack pointer as an address, read the IAWR. <br> 2. Load the IAWR in the MDR |
+|       | 2nd Half  | 1. Add carry to IAWR (if carried from IAWL) <br> 2. Restore the IAWR <br> 3. Load MAR with IAWR or branch address |
+| I3    | 1st Half  | 1. Using the MAR as an address, read the IWL <br> 2. Load the IWL into the operation register, B register, and MDR |
+|       | 2nd Half  | 1. Using the I/O controller address, read the CRT character or dot pattern code. <br> 2. Transfer character code or dot pattern to I/O controller |
+| I4    | 1st Half  | 1. Using the MAR as an address, read the IWR <br> 2. Load the IWR in the MDR and/or B register |
+|       | 2nd Half  | 1. Using the I/O controller address, read the character code or dot pattern for the CRT character position. <br> 2. Transfer the character code or dot pattern to the I/O controller |
+| E2    | 1st Half  | 1. If the indexed address mode is selected, use the index register number and section number as an address, read the contents of an index register. Load the contents of the index register into the MDR. <br> 2. If the direct address mode is selected, no memory access is required. |
+|       | 2nd Half  | 1. If the indexed mode is selected, modify the contents of the index register and restore the contents of the index register. Load MAR with composite address from the B register and the MDR. <br> 2. If the direct address mode is selected, load the MAR with the IWR without another memory access cycle. |
+| E3    | 1st Half  | 1. If necessary, read the contents of the location specified by MAR. <br> 2. Load the contents into MDR |
+|       | 2nd Half  | 1. Execute instruction <br> 2. If necessary, store the results in the location specified by MAR |
+
+*Figure 2-12. Functions Performed During Each Instruction Cycle (Sheet 2 of 2)*
+
+
+
+
+At the beginning of cycle I4, the processor again uses the contents of the memory address register to select a memory location and read the contents. As previously mentioned, the I4 signal applied to the address net switches the low-order position to a one; thus, the IWR is read from an odd address. The IWR is loaded into the MDR, replacing the previously loaded IWL. Thus, at the end of cycle I4, the IWL is in the operation register while the IWR is in the memory data register.
+
+During the second half of cycle I4, the I/O controller again addresses memory. Again, it reads either the character code or the dot pattern required to produce the characters on the CRT display.
+
+The next step taken depends upon the class of instruction. Class 0 and Class 1 instructions require only cycles I3, I4, I1, and I2 to perform their function, whereas Class 2 and Class 3 instructions also require cycles E2 and E3.
+
+Assume that the current instruction is a Class 2 or 3 instruction. Once this instruction is decoded, the processor determines from its operation code whether it is to be executed in the immediate, direct, or indexed addressing mode. Operation in the indexed mode is discussed first.
+
+When the indexed address mode is selected, the index register number specified in the IWL and the section number held in the section register are gated through the address net to select an index register and read its contents during cycle E2. The data read is loaded into the memory data register. During the second half of cycle E2, the contents of the MDR are modified as specified by the two index register control bits. The modified number is then written back into the same index register.
+
+At the end of cycle E2, the contents of the MDR (contents of the index register) are transferred to the low-order positions of the MAR, and bits 2-7 of the B register (the page number portion of an address) are loaded in the high-order positions of the MAR. Together, these portions form a composite address of the memory location to be used by this instruction.
+
+If the direct address mode is selected, the memory access cycle during the first half of cycle E2 is not required. The MDR still holds the IWR and, during the second half of E2, the IWR is transferred to the MAR.
+
+For class 2 or 3 instructions operating in the immediate address mode, cycle E2 is skipped. Cycle E3 begins immediately after cycle I4.
+
+If a memory access cycle is required during cycle E3 of the Class 2 and 3 instructions, the MAR contents are used to address memory as required to execute the instruction. Note that some of the Class 2 and 3 instructions do not require further memory access for their execution.
+
+
+
+After an instruction (regardless of class) is executed, cycle I1 must be performed to acquire the next instruction. During cycle I1, the contents of the stack pointer are gated through the address net. This reads the IAWL from memory.
+
+The action taken during the second half of I1 depends upon whether or not the instruction is to execute a branch. Assuming that no branch is to be taken, the IAWL is increased by two, to specify the address of the current instruction, and returned to the stack pointer address from which it was read. The modified IAWL is then loaded into the low-order positions of the MAR to become part of the address from which the next instruction will be read.
+
+Still assuming that no branch is to be taken, the processor must determine if cycle I2 is necessary. There are four different conditions that cause cycle I2 to be performed. These conditions are:
+
+a. **The take branch flip-flop is set.** This flip-flop records the results of branch instructions executed during I3 and I4, and it determines whether or not a branch is to be taken.
+
+b. **The instruction is in the 15X class.**
+
+c. **The current instruction used either the direct or indexed address mode.** This means that the page number held in the high-order section of the MAR was changed and, therefore, it is necessary to read the IAWR to reacquire the page number.
+
+d. **A carry resulted when two was added to the IAWL in cycle I1.** If a carry resulted, the IAWR has been stepped into the next page and, therefore, the IAWR must be read and modified.
+
+If cycle I2 is not required, the processor moves to cycle I3 and reads the IWL from the location specified by the contents of the MAR. This begins a new instruction.
+
+If, however, cycle I2 is performed, the following action takes place: The IAWR is read from the odd stack pointer address. If a carry must be added, this is done and the updated IAWR is restored to the location from which it was read. The IAWR is also loaded into the high-order positions of the MAR and used to read the next instruction.
+
+The next case to be considered is what must be done if the current instruction produces a branch condition. In this case, both cycles I1 and I2 must be performed, but the action taken during these cycles depends upon which instruction is being executed. (Detailed descriptions of each instruction follow.) Basically, an instruction address is formed to substitute for the IAWL and IAWR. This new address is loaded into the MAR and the next instruction read from the new address during I3 and I4.
+
+
+
+
+
+
+
+**Processor Instruction Set.**
+
+As mentioned earlier in this section, the processor is a stored program, general-purpose computer. The program that it executes is made up of instructions stored in the memory. An instruction is read from memory, decoded, and executed; then, the next instruction is read from memory and the process repeated.
+
+Although a program may be made up of several thousand instructions, it is simply a combination of the 41 basic instructions that the processor can execute directly and the I/O instructions that are carried out by the I/O controller. The 41 basic instructions are described below, and their formats are shown in figure 2-13.
+
+
+INSTRUCTION
+
+
+
+                                                                  FORMAT                                   OUTPUTS OF
+                                                   IWL                                 IWR                 OPERATION CODE
+                                    +---+---+---+---+---+---+---+---+   +---+---+---+---+---+---+---+---+      DECODER
+                                    | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |   | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
+                                    +---+---+---+---+---+---+---+---+   +---+---+---+---+---+---+---+---+
+
+
+                                    +-----------+---------------+---+   +-------------------------------+
+TLJ - Test Literal and Jump (OXX).. | 0   0   0 |   JUMP COUNT  | * |   |             LITERAL           |   BR-OFFSET-OP
+                                    +-----------+---------------+---+   +-------------------------------+
+      *0 = Jump Forward, 1 = Jump Backward
+
+                                    +-----------+---------------+---+   +-------------------------------+
+TMJ - Test Mask and Jump (OXX)..... | 0   0   1 |   JUMP COUNT  | * |   |              MASK             | . BR-OFFSET-OP
+                                    +-----------+---------------+---+   +-------------------------------+
+
+                                    +---------------------------------+   +-------------------------------+
+TLX - Test Literal and Exit (000).. | 0   0   0   0   0   0   0   0   |   |             LITERAL           | . BR-OFFSET-OP
+                                    +---------------------------------+   +-------------------------------+
+
+                                    +---------------------------------+   +-------------------------------+
+TMX - Test Mask and Exit (040)..... | 0   0   1   0   0   0   0   0   |   |              MASK             | . BR-OFFSET-OP
+                                    +---------------------------------+   +-------------------------------+
+
+                                    +---------------+-----------+-------------------+---+
+BRU - Branch Unconditional (10X)... | 0   1   0   0 |   PAGE    |      ADDRESS      | 0 | . BCD-UNC
+                                    +---------------+-----------+-------------------+---+
+
+                                    +---------------+-----------+-------------------+---+
+BRE - Branch on Equal (10X)........ | 0   1   0   0 |   PAGE    |      ADDRESS      | 1 | . BCD-UNC
+                                    +---------------+-----------+-------------------+---+
+
+                                    +---------------+-----------+-------------------+---+
+BRH - Branch on High (11X)......... | 0   1   0   1 |   PAGE    |      ADDRESS      | 0 | . BCD
+                                    +---------------+-----------+-------------------+---+
+
+                                    +---------------+-----------+-------------------+---+
+BRL - Branch on Low (11X).......... | 0   1   0   1 |   PAGE    |      ADDRESS      | 1 | . BCD
+                                    +---------------+-----------+-------------------+---+
+
+                                    +-------------------+-----------+-------------------+---+
+SBU - Stack and Branch Uncond. (12X)| 0   1   0   1   0 |  PAGE    |      ADDRESS      | 0 | . STK-UNC
+                                    +-------------------+-----------+-------------------+---+
+
+                                    +-------------------+-----------+-------------------+---+
+SBE - Stack and Branch on Equal (12X)| 0   1   0   1   0 |  PAGE   |      ADDRESS      | 1 | . STK-UNC
+                                    +-------------------+-----------+-------------------+---+
+
+                                    +-------------------+-----------+-------------------+---+
+SBH - Stack and Branch on High (13X)| 0   1   0   1   1 |  PAGE    |      ADDRESS      | 0 | . STK
+                                    +-------------------+-----------+-------------------+---+
+
+                                    +-------------------+-----------+-------------------+---+
+SBL - Stack and Branch on Low (13X).| 0   1   0   1   1 |  PAGE    |      ADDRESS      | 1 | . STK
+                                    +-------------------+-----------+-------------------+---+
+
+                                    +---------------+-----------+-------------------+---+
+EXB - Exit and Branch (16X)........ | 0   1   1   0 |   PAGE    |      ADDRESS      | 0 | . EXIT-BRANCH
+                                    +---------------+-----------+-------------------+---+
+
+A490 (Sheet 1)
+
+
+
+
+
+
+
+**TLJ - Test Literal and Jump**
+
+The accumulator is compared to the literal, and the result is indicated in the condition register. If they are equal, a jump forward (+) or a jump backward (-) up to 15 instruction locations is performed. If, however, they are not equal, the next sequential instruction is executed. (Timing: 3 microseconds if the jump is not performed, 4 microseconds if the jump is performed.)
+
+**TMJ - Test Mask and Jump**
+
+The IWR is used as a mask. When any of the accumulator bits selected by a one in the mask are zero, the condition register is set to unequal. When the selected bits are all ones, the condition register is set to equal. When a mask bit is zero, the corresponding accumulator bit is ignored. If the condition register is set to equal, a jump forward (+) or jump backward (-) up to 15 instruction locations is performed. If the condition register is not set to equal, the next sequential instruction is executed. (Timing: 3 microseconds if the jump is not performed, 4 microseconds if the jump is performed.)
+
+**TLX - Test Literal and Exit**
+
+The accumulator is compared to the literal, and the result is indicated in the condition register. If they are not equal, the next sequential instruction is performed. If they are equal, a conditional exit is performed to complete the return linkage established by the stack and branch instruction executed last. The stack pointer is decremented to the preceding level, which contains the address of the last stack and branch instruction executed. This address is then incremented by 2 to establish the address of the instruction following the stack and branch instruction. This is the instruction address where processing continues. (Timing: 3 microseconds if the jump is not performed, 4 microseconds if the jump is performed.)
+
+**TMX - Test Mask and Exit**
+
+The IWR is used as an eight-bit mask. When any of the accumulator bits selected by a one in the mask are zero, the condition register is set to unequal. When the selected bits are all ones, the condition register is set to equal. When the mask bit is zero, the corresponding accumulator bit is ignored. If the condition register is set to equal, a conditional exit is performed to complete the return linkage established by the stack and branch instruction executed last. The stack pointer is decremented to the preceding level, which contains the address of the last stack and branch instruction executed. This address is then incremented by 2 to establish the address of the instruction following the stack and branch instruction. This is instruction address where processing continues. (Timing: 3 microseconds if the jump is not performed, 4 microseconds if the jump is performed.)
+
+**BRU - Branch Unconditional**
+
+An unconditional branch is performed to the address specified. The branch address can be any location within the current section of memory. (Timing: 4 microseconds.)
+
+**BRE - Branch on Equal**
+
+A branch to the address specified is performed when the condition register, set by a previous instruction, is found to be set to equal. If this condition is not met, the next sequential instruction is executed. (Timing: 3 microseconds if the branch is not performed, 4 microseconds if the branch is performed.)
+
+**BRH - Branch on High**
+
+A branch to the address specified is performed when the condition register, which has been set by a previous instruction, is found to be set to high. If this condition is not met, the next sequential instruction is executed. (Timing: 3 microseconds if the branch is not performed, 4 microseconds if the branch is performed.)
+
+**BRL - Branch on Low**
+
+A branch is performed when the condition register, set by a previous instruction, is found to be set to low. If this condition is not met, the next sequential instruction is executed. (Timing: 3 microseconds if the branch is not performed, 4 microseconds if the branch is performed.)
+
+**SBU - Stack and Branch Unconditional**
+
+A stack and branch operation is performed regardless of the setting of the condition register. The current instruction address is stored and the stack pointer is incremented to the next level. (Timing: 3 microseconds.)
+
+**SBE - Stack and Branch on Equal**
+
+A stack and branch operation is performed when the condition register, set by a previous instruction, is found to be set to equal. If the condition is not met, the next sequential instruction is executed. (Timing: 3 microseconds if the stack and branch is not performed, 4 microseconds if the stack and branch is performed.)
+
+**SBH - Stack and Branch on High**
+
+A stack and branch operation is performed when the condition register, set by a previous instruction, is found to be set to high. If the condition is not met, the next sequential instruction is executed. (Timing: 3 microseconds if the stack and branch is not performed, 4 microseconds if the stack and branch is performed.)
+
+**SBL - Stack and Branch on Low**
+
+A stack and branch operation is performed when the condition register, set by a previous instruction, is found to be set to low. If the condition is not met, the next sequential instruction is executed. (Timing: 3 microseconds if the stack and branch is not performed, 4 microseconds if the stack and branch is performed.)
+
+** EXB - Exit and Branch**
+
+The exit and branch instruction branches to the address specified and decrements the stack pointer to the preceding level. The address specified in the operand is the instruction address within the current section where processing continues. (Timing: 4 microseconds.)
+
+**EXU - Exit Unconditional**
+
+This form of exit performs the return linkage established by the stack and branch instruction executed last. The stack pointer is decremented to the preceding stack level, which contains the address of the last stack and branch instruction executed. This address is then incremented by 2 to establish the address of the instruction following the stack and branch instruction. This is the instruction address where processing continues. (Timing: 4 microseconds.)
+
+**SMS - Set Memory Section**
+
+The set memory section instruction provides a means of transferring from the current section of memory to another section. A branch instruction (branch, stack and branch, or exit and branch) preceded by an SMS instruction will transfer to the address defined by the branch address and the section specified in the Set Memory Section instruction operand. (Timing: 4 microseconds.)
+
+**SMC - Set Memory Control**
+
+This instruction controls the state of the U and V bits. A description of how the U and V bits affect memory addressing appears later in the processor description.
+
+**SSC - Set Memory Section and Control**
+
+This instruction performs both the set memory section operation of SMS and the set memory control operation of SMC. (Timing: 4 microseconds.)
+
+**SAC - Set Arithmetic Condition**
+
+This instruction forces the condition register to a condition that depends on the state of bits 4 and 5 of the accumulator, at the time of the SAC instruction, as follows:
+
+** SMS - Set Memory Section
+
+The set memory section instruction provides a means of transferring from the current section of memory to another section. A branch instruction (branch, stack and branch, or exit and branch) preceded by an SMS instruction will transfer to the address defined by the branch address and the section specified in the Set Memory Section instruction operand. (Timing: 4 microseconds.)
+
+** SMC - Set Memory Control
+
+This instruction controls the state of the U and V bits. A description of how the U and V bits affect memory addressing appears later in the processor description.
+
+** SSC - Set Memory Section and Control
+
+This instruction performs both the set memory section operation of SMS and the set memory control operation of SMC. (Timing: 4 microseconds.)
+
+** SAC - Set Arithmetic Condition
+
+This instruction forces the condition register to a condition that depends on the state of bits 4 and 5 of the accumulator, at the time of the SAC instruction, as follows:
+
+ACCUMULATOR   CONDITION
+BITS          FORCED
+  5 4
+  ----
+  1 0         Equal
+  0 1         High
+  0 0         Low
+  1 1         Equal
+
+(Timing: 4 microseconds)
+
+** LSW - Load Sense Switches
+
+This instruction loads the state of 8 toggle switches into the accumulator. This instruction is available only for those units with the sense switch option. (Timing: 4 microseconds.)
+
+** EMP - Enable Memory Parity
+
+This instruction enables the parity checking circuits in the memory and clears any previous parity error. This instruction is used only with the 16,384-byte memory that has parity checking capability. (Timing: 4 microseconds.)
+
+**LPS - Load Processor Status**
+
+This instruction loads a processor status word into the accumulator.  
+(Timing: 4 microseconds.)
+
+**DPI - Disable Processor Interrupt**
+
+This instruction inhibits the automatic stack and branch that occurs upon receipt of an interrupt. It does not disable the interrupt. If the Disable Processor Interrupt instruction is executed and the interrupt is subsequently activated, the automatic stack and branch operation will occur only after the execution of an EPI instruction.  
+(Timing: 4 microseconds.)
+
+**EPI - Enable Processor Interrupt**
+
+This instruction enables the automatic stack and branch operation that occurs upon receipt of an interrupt. It must be executed once for each interrupt.
+
+**CPI - Clear Processor Interrupt**
+
+An interrupt overflow condition occurs when more than two interrupts have been activated before the execution of an Enable Processor Interrupt (EPI) instruction. This condition can be tested by the Load Processor Status (LPS) instruction. A Clear Interrupt instruction clears the interrupt overflow indicator.  
+(Timing: 4 microseconds.)
+
+**TRM - Load Terminal Identification**
+
+Loads the accumulator with the identification assigned to this terminal by the program interlocking plug.  
+(Timing: 4 microseconds.)
+
+**LDA - Load Accumulator**
+
+Loads the accumulator with the value specified by the immediate, the direct, or the indexed address.  
+(Timing: 4 microseconds when immediate address form is used, otherwise, 6 microseconds.)
+
+**LDX - Load Index Register**
+
+Loads the specified index register with the IWR.  
+(Timing: 4 microseconds.)
+
+**LIA - Load Instruction Address**
+
+Transfers the 8 least significant bits of the current instruction address to the specified index register. If the IWR is zero, the section and page portions of the current instruction address are transferred to the accumulator. If the IWR is not zero, the IWR is transferred to the accumulator.  
+(Timing: 4 microseconds.)
+
+**STA - Store Accumulator**
+
+Stores the contents of the accumulator in the address specified by the direct or indexed address. (Timing: 6 microseconds.)
+
+**ADA - Add to Accumulator**
+
+Adds to the accumulator the value specified by the immediate, the direct, or the indexed address. In the event of an overflow condition, the overflow character is lost. (Timing: 4 microseconds when immediate address form is used, otherwise, 6 microseconds.)
+
+**ADX - Add to Index Register**
+
+Adds the IWR to the index register specified. In the event of any overflow condition, the overflow character is lost. (Timing: 4 microseconds.)
+
+**SUA - Subtract from Accumulator**
+
+Subtracts from the accumulator the value specified by the immediate, the direct, or the indexed address. (Timing: 4 microseconds when the immediate address form is used, otherwise, 6 microseconds.)
+
+**SUX - Subtract from Index Register**
+
+Subtracts the IWR from the index register specified. (Timing: 4 microseconds.)
+
+**ANA - Logical AND to Accumulator**
+
+Logically ANDs with the accumulator the value specified by the immediate, direct, or indexed address. (Timing: 4 microseconds when the immediate address form is used, otherwise 6 microseconds.)
+
+**SAN - Shift and Logical AND to Accumulator**
+
+This form of the logical AND instruction performs a right circular shift of the bits in the accumulator, by the number of positions specified in the shift count, before the logical AND of the IWR and the accumulator is performed. (Timing: 4 microseconds.)
+
+**ERA - Exclusive OR to Accumulator**
+
+Performs an Exclusive OR of the accumulator and the value specified by the immediate, direct, or indexed address. (Timing: 4 microseconds when the immediate address form is used, otherwise, 6 microseconds.)
+
+**SER - Shift and Exclusive OR to Accumulator**
+
+This form of the Exclusive OR instruction performs a right circular shift of the bits in the accumulator, by the number of positions specified in the shift count, before the Exclusive OR of the IWR and the accumulator is performed. (Timing: 4 microseconds.)
+
+**IRA - Inclusive OR to Accumulator**
+
+Logically ORs the accumulator and the value specified by the immediate, direct, or indexed address. (Timing: 4 microseconds when the immediate address form is used, otherwise 6 microseconds.)
+
+**SIR - Shift and Inclusive OR to Accumulator**
+
+This form of the inclusive OR instruction performs a right circular shift of the bits in the accumulator, by the number of positions specified in the shift count, before the inclusive OR of the IWR and the accumulator is performed. (Timing: 4 microseconds.)
+
+**CPA - Compare Accumulator**
+
+Compares the contents of the accumulator to the value specified by the immediate, direct, or indexed address. The condition register value is changed to reflect the high, low, or equal result of the comparison. (Timing: 4 microseconds when the immediate address form is used, otherwise, 6 microseconds.)
+
+**CPX - Compare Index Register**
+
+Compares the contents of the index register specified to the IWR. The condition register value is changed to reflect the high, low, or equal result of the comparison. (Timing: 4 microseconds.)
+
+**Operation Register and Decoder.**
+
+The operation register is an 8-bit latch shown on sheet 7 of the processor logic diagram. During instruction cycle I3, it is loaded with the output of the memory output multiplexer, which is the left half of an instruction word (IWL). This word is held in the operation register until the next instruction is loaded during the next instruction cycle I3.
+
+The contents of the operation register are designated OP0 through OP7, and are distributed to several circuits. The primary use of the operation code is to specify the instruction to be executed, and this is accomplished as shown in tables 2-2 through 2-4.
+
+
+
+
+[FReD PAGE 2-35]
 
 
 
