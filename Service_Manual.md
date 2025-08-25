@@ -658,6 +658,91 @@ An example of an instruction executed in the indexed address mode is 213-050, th
 - **11** - Decrement by 1  
 
 
+```
+       IWL               IWR
+┌─────────┬─────┐ ┌───────────┬───┐
+│1 0│0 0 1│0 1 1│ │0 0 1 0 1 0│0 0│
+└───┴─────┴─────┘ └───────────┴───┘
+          \──┬──/ \─────┬─────/
+             │          └──> SELECTS P12
+             └─────────────> SELECTS I3
+```
+
+
+*Figure 2-10. Format of an Instruction Using the Indexed Address Mode*
+
+**Processor Timing.**
+
+The basic timing unit for the processor is the machine cycle, which is one microsecond long. Figure 2-11 is a timing diagram in which the signals generated during each machine cycle are shown. A 6 MHz oscillator is the source of the timing signals. A counter and count decoding gates then use the oscillator output to produce the rest of the timing signals shown in the figure.
+
+**Instruction Cycles.**
+
+The next timing division in the processor is the instruction cycle, which is the time required to acquire an instruction and execute it. Depending upon the type of instruction, an instruction cycle is made up of three to six machine cycles. Thus, an instruction may require between three and six microseconds.
+
+As stated above, a maximum of six machine cycles are required to perform an instruction. These cycles are designated I (instruction) or E (execution) as follows: I1, I2, I3, I4, E2, and E3.
+
+Instructions can be divided into four general classes:
+
+Class 0, Jump Instructions
+
+Class 1, Branch and I/O Instructions
+
+Class 2, Transfer and Arithmetic Instructions
+
+Class 3, Boolean and Compare Instructions
+
+
+![alt text](image.png)
+
+*Figure 2-11. Machine Cycle Timing Diagram*
+
+The class to which an instruction belongs is indicated by the two most significant bits of the left byte of the instruction word, which are 0, 1, 2, or 3, corresponding to the class of instructions. Instruction cycles I1 through I4 are common to all instruction classes, while execution cycles E2 and E3 operate only during Class 2 and Class 3 instructions. Table 2-1 shows the cycles required for each class of instruction.
+
+The number of machine cycles in an instruction depends upon the instruction and the conditions that exist when the instruction is executed. Since the IWL, which contains the operation code, is read during cycle I3, the following discussion defines the starting cycle as I3. Figure 2-12 shows the functions performed during each cycle.
+
+At the beginning of cycle I3, the address of the instruction to be executed has been formed in the memory address register and is applied to the address net. The least significant position of the address net is controlled directly by the I3 and I4 signals. During I3, it is held at zero to read an even address and during I4 it is switched to a one to read the odd address.
+
+
+
+*Table 2-1. Cycles Required by Each Instruction*
+
+```
+| IWL  | TYPE                  | REQUIRED CYCLES          |
+|------|-----------------------|--------------------------|
+| 0XX  | Neither               | I₁, I₂, I₃, I₄           |
+| 10X  | Direct,               |                          |
+| 11X  | Indexed,              |                          |
+| 12X  | Nor                   |                          |
+| 13X  | Immediate             |                          |
+| 14X  | Address               |                          |
+| 15X  |                       |                          |
+| 16X  |                       |                          |
+| 17X  |                       |                          |
+|------|-----------------------|--------------------------|
+| 20X  | Immediate             | I₁, I₂, I₃, I₄, E₃       |
+| 22X  | Address               |                          |
+| 24X  |                       |                          |
+| 26X  |                       |                          |
+| 30X  |                       |                          |
+| 32X  |                       |                          |
+| 34X  |                       |                          |
+| 36X  |                       |                          |
+|------|-----------------------|--------------------------|
+| 21X  | Direct or             | I₁, I₂, I₃, I₄, E₂, E₃   |
+| 23X  | Indexed Address       |                          |
+| 25X  |                       |                          |
+| 27X  |                       |                          |
+| 31X  |                       |                          |
+| 33X  |                       |                          |
+| 35X  |                       |                          |
+| 37X  |                       |                          |
+|------|-----------------------|--------------------------|
+```
+
+During the first half of I3, the IWL is read. This byte is then loaded into the operation register, the B register, and the memory data register. At this point, the operation code is decoded and instruction execution can begin.
+
+During the second half of I3 the I/O controller gains access to memory. The I/O controller reads either character codes or dot patterns for the CRT display.
+
 
 [FReD PAGE 2-19]
 
