@@ -9,6 +9,4 @@ Overall format:
 # Density is 1600bpi, so one bit every 0.000625, and one byte every 0.005 inches.
 0030.0000: 100
 0030.0050: 030
-0030.0100: EOT
 ```
-

@@ -24,6 +24,8 @@ public:
     tape_location_t(size_t index,byte xx) : inches_(index*8.0/BPI) {}
 
     double inches() const { return inches_; }
+    double seconds() const { return inches_ / IPS; }
+    double bytes() const { return inches_ * BPI / 8.0; }
 
     bool operator<(const tape_location_t &other) const
     {
@@ -47,7 +49,7 @@ public:
     std::string as_string() const
     {
         char buffer[32];
-        snprintf(buffer, sizeof(buffer), "%04.4f", inches_);
+        snprintf(buffer, sizeof(buffer), "%04.4fi|%03.5fs", inches_,seconds());
         return buffer;
     }
 };
@@ -81,11 +83,14 @@ public:
 /**
  * This represent a physical tape.
  * It doesn't move, it just contains data.
+ * #### : it probably needs to contain the length of the tape
  */
 class tape_t
 {
     //  Very simple version 0
     std::vector<tape_byte_t> data_;
+
+    tape_location_t end_ = {1200};  //  100 feet default
 
 public:
     tape_t(const std::vector<uint8_t> &data = {})
