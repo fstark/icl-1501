@@ -417,6 +417,8 @@ c. An accumulator, which normally holds one of the operands involved in
 
 ![Diagram of all processor blocks interconnection](images/image-4.png)
 
+*Figure 2-2. Processor Block Diagram*
+
 
 #### Word Formats.
 
@@ -489,9 +491,7 @@ LEVEL 7    P07     P17     P27     P37     P47     P57     P67     P77
         <---------------------------- 16K ---------------------------->
 ```
 
-Figure 2-4. Organization of Memory
-
-
+*Figure 2-4. Organization of Memory*
 
 
 
@@ -503,7 +503,7 @@ Figure 2-4. Organization of Memory
    USED└── PAGE NUMBER ──┘      NUMBER
 ```
 
-Figure 2-5. Memory Address Format
+*Figure 2-5. Memory Address Format*
 
 
 
@@ -819,76 +819,291 @@ As mentioned earlier in this section, the processor is a stored program, general
 
 Although a program may be made up of several thousand instructions, it is simply a combination of the 41 basic instructions that the processor can execute directly and the I/O instructions that are carried out by the I/O controller. The 41 basic instructions are described below, and their formats are shown in figure 2-13.
 
-
-INSTRUCTION
-
-
-
-                                                                  FORMAT                                   OUTPUTS OF
-                                                   IWL                                 IWR                 OPERATION CODE
-                                    +---+---+---+---+---+---+---+---+   +---+---+---+---+---+---+---+---+      DECODER
-                                    | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |   | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
-                                    +---+---+---+---+---+---+---+---+   +---+---+---+---+---+---+---+---+
-
-
-                                    +-----------+---------------+---+   +-------------------------------+
-TLJ - Test Literal and Jump (OXX).. | 0   0   0 |   JUMP COUNT  | * |   |             LITERAL           |   BR-OFFSET-OP
-                                    +-----------+---------------+---+   +-------------------------------+
-      *0 = Jump Forward, 1 = Jump Backward
-
-                                    +-----------+---------------+---+   +-------------------------------+
-TMJ - Test Mask and Jump (OXX)..... | 0   0   1 |   JUMP COUNT  | * |   |              MASK             | . BR-OFFSET-OP
-                                    +-----------+---------------+---+   +-------------------------------+
-
-                                    +---------------------------------+   +-------------------------------+
-TLX - Test Literal and Exit (000).. | 0   0   0   0   0   0   0   0   |   |             LITERAL           | . BR-OFFSET-OP
-                                    +---------------------------------+   +-------------------------------+
-
-                                    +---------------------------------+   +-------------------------------+
-TMX - Test Mask and Exit (040)..... | 0   0   1   0   0   0   0   0   |   |              MASK             | . BR-OFFSET-OP
-                                    +---------------------------------+   +-------------------------------+
-
-                                    +---------------+-----------+-------------------+---+
-BRU - Branch Unconditional (10X)... | 0   1   0   0 |   PAGE    |      ADDRESS      | 0 | . BCD-UNC
-                                    +---------------+-----------+-------------------+---+
-
-                                    +---------------+-----------+-------------------+---+
-BRE - Branch on Equal (10X)........ | 0   1   0   0 |   PAGE    |      ADDRESS      | 1 | . BCD-UNC
-                                    +---------------+-----------+-------------------+---+
-
-                                    +---------------+-----------+-------------------+---+
-BRH - Branch on High (11X)......... | 0   1   0   1 |   PAGE    |      ADDRESS      | 0 | . BCD
-                                    +---------------+-----------+-------------------+---+
-
-                                    +---------------+-----------+-------------------+---+
-BRL - Branch on Low (11X).......... | 0   1   0   1 |   PAGE    |      ADDRESS      | 1 | . BCD
-                                    +---------------+-----------+-------------------+---+
-
-                                    +-------------------+-----------+-------------------+---+
-SBU - Stack and Branch Uncond. (12X)| 0   1   0   1   0 |  PAGE    |      ADDRESS      | 0 | . STK-UNC
-                                    +-------------------+-----------+-------------------+---+
-
-                                    +-------------------+-----------+-------------------+---+
-SBE - Stack and Branch on Equal (12X)| 0   1   0   1   0 |  PAGE   |      ADDRESS      | 1 | . STK-UNC
-                                    +-------------------+-----------+-------------------+---+
-
-                                    +-------------------+-----------+-------------------+---+
-SBH - Stack and Branch on High (13X)| 0   1   0   1   1 |  PAGE    |      ADDRESS      | 0 | . STK
-                                    +-------------------+-----------+-------------------+---+
-
-                                    +-------------------+-----------+-------------------+---+
-SBL - Stack and Branch on Low (13X).| 0   1   0   1   1 |  PAGE    |      ADDRESS      | 1 | . STK
-                                    +-------------------+-----------+-------------------+---+
-
-                                    +---------------+-----------+-------------------+---+
-EXB - Exit and Branch (16X)........ | 0   1   1   0 |   PAGE    |      ADDRESS      | 0 | . EXIT-BRANCH
-                                    +---------------+-----------+-------------------+---+
-
-A490 (Sheet 1)
+```
 
 
 
 
+                   INSTRUCTION                                                        FORMAT                                   OUTPUTS OF
+                                                                     IWL                                 IWR                 OPERATION CODE
+                                                      +---+---+---+---+---+---+---+---+   +---+---+---+---+---+---+---+---+      DECODER
+                                                      | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |   | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
+                                                      +---+---+---+---+---+---+---+---+   +---+---+---+---+---+---+---+---+
+
+
+                                                      +-----------+---------------+---+   +-------------------------------+
+TLJ - Test Literal and Jump (OXX).....................| 0   0   0 |   JUMP COUNT  | * |   |             LITERAL           |   BR-OFFSET-OP
+                                                      +-----------+---------------+---+   +-------------------------------+
+      *0 = Jump Forward, 1 = Jump Backward                0        0-3         0-7
+                 
+                                                      +-----------+---------------+---+   +-------------------------------+
+TMJ - Test Mask and Jump (OXX)........................| 0   0   1 |   JUMP COUNT  | * |   |              MASK             | . BR-OFFSET-OP
+                                                      +-----------+---------------+---+   +-------------------------------+
+                                                          0        0-3         0-7
+
+                                                      +-------------------------------+   +-------------------------------+
+TLX - Test Literal and Exit (000).....................| 0   0   0   0   0   0   0   0 |   |             LITERAL           | . BR-OFFSET-OP
+                                                      +-------------------------------+   +-------------------------------+
+                                                          0         0           0
+
+                                                      +-------------------------------+   +-------------------------------+
+TMX - Test Mask and Exit (040)........................| 0   0   1   0   0   0   0   0 |   |              MASK             | . BR-OFFSET-OP
+                                                      +-------------------------------+   +-------------------------------+
+                                                          0         4           0
+
+                                                      +-------------------------------+   +-------------------------------+
+BRU - Branch Unconditional (10X)......................| 0   1   0   0   0 |   PAGE    |   |  ADDRESS                  | 0 | . BCD-UNC
+                                                      +-------------------------------+   +-------------------------------+
+                                                          1         0           X
+
+                                                      +-------------------------------+   +-------------------------------+
+BRE - Branch on Equal (10X)...........................| 0   1   0   0   0 |   PAGE    |   |  ADDRESS                  | 1 | . BCD-UNC
+                                                      +-------------------------------+   +-------------------------------+
+                                                          1         0           X
+
+                                                      +-------------------------------+   +-------------------------------+
+BRH - Branch on High (11X)............................| 0   1   0   0   1 |   PAGE    |   |  ADDRESS                  | 0 | . BCD
+                                                      +-------------------------------+   +-------------------------------+
+                                                          1         1           X
+
+                                                      +-------------------------------+   +-------------------------------+
+BRL - Branch on Low (11X).............................| 0   1   0   0   1 |   PAGE    |   |  ADDRESS                  | 1 | . BCD
+                                                      +-------------------------------+   +-------------------------------+
+                                                          1         1           X
+
+                                                      +-------------------------------+   +-------------------------------+
+SBU - Stack and Branch Uncond. (12X)..................| 0   1   0   1   0 |   PAGE    |   |  ADDRESS                  | 0 | . STK-UNC
+                                                      +-------------------------------+   +-------------------------------+
+                                                          1         2           X
+
+                                                      +-------------------------------+   +-------------------------------+
+SBE - Stack and Branch on Equal (12X).................| 0   1   0   1   0 |   PAGE    |   |  ADDRESS                  | 1 | . STK-UNC
+                                                      +-------------------------------+   +-------------------------------+
+                                                          1         2           X
+
+                                                      +-------------------------------+   +-------------------------------+
+SBH - Stack and Branch on High (13X)..................| 0   1   0   1   1 |   PAGE    |   |  ADDRESS                  | 0 | . STK
+                                                      +-------------------------------+   +-------------------------------+
+                                                          1         3           X
+
+                                                      +-------------------------------+   +-------------------------------+
+SBL - Stack and Branch on Low (13X)...................| 0   1   0   1   1 |   PAGE    |   |  ADDRESS                  | 1 | . STK
+                                                      +-------------------------------+   +-------------------------------+
+                                                          1         3           X
+
+                                                      +-------------------------------+   +-------------------------------+
+EXB - Exit and Branch (16X)...........................| 0   1   1   1   0 |   PAGE    |   |  ADDRESS                  | 0 | . EXIT-BRANCH
+                                                      +-------------------------------+   +-------------------------------+
+                                                          1         6           X
+
+                                                      +-------------------------------+   +-------------------------------+
+EXU - Exit Unconditional (140) .......................| 0   1   1   0   0   0   0   0 |   | 0   0   0   0   0   0   0   0 |   EXIT
+                                                      +-------------------------------+   +-------------------------------+
+                                                          1         4           0             0         0           0
+
+                                                      +-------------------------------+   +-------------------------------+
+SMS - Set Memory Section (150)........................| 0   1   1   0   1   0   0   0 |   | 0   0 |  SECTION  | 0   0   0 |   15-X-OP, SECTION-OP
+                                                      +-------------------------------+   +-------------------------------+
+                                                          1         5           0             0         S           0
+
+                                                      +-------------------------------+   +-------------------------------+
+SSC - Set Memory Section..............................| 0   1   1   0   1   0   1   0 |   | Y   Y | SECTION   | 0   0   0 |   15-X-OP, 152-OP
+      and Control (152)                               +-------------------------------+   +-------------------------------+
+                                                         1         5           2              Y         S           0
+      YY = 0-Reset U&V, 1-Set V & Reset U, 2-Set U & Reset V, 3-Set U&V                     Y = Index Register Control
+
+                                                      +-------------------------------+   +-------------------------------+
+SAC - Set Arithmetic Condition (153)..................| 0   1   1   0   1   0   1   1 |   | 0   0   0   0   0   0   0   0 |   15-X-OP, 153-OP
+                                                      +-------------------------------+   +-------------------------------+
+                                                          1         5           3             0         0           0
+
+LSW - Load Sense Switches (154).......\               +-------------------------------+   +-------------------------------+
+             (or)                      +..............| 0   1   1   0   1   1   0   0 |   | 0   0   0   0   0   0   0   0 |   15-X-OP, SENSE-1
+EMP - Enable Memory Parity (154)....../               +-------------------------------+   +-------------------------------+
+                                                          1         5           4             0         0           0
+
+                                                      +-------------------------------+   +-------------------------------+
+LPS - Load Processor Status (155).................... | 0   1   1   0   1   1   0   1 |   | 0   0   0   0   0   0   0   0 |   15-X-OP, 155-OP
+                                                      +-------------------------------+   +-------------------------------+
+                                                          1         5           5             0         0           0
+
+                                                      +-------------------------------+   +-------------------------------+
+DPI - Disable Processor Interrupt (156)...............| 0   1   1   0   1   1   1   0 |   | 0   0   0   0   0   0   0   0 |   15-X-OP, 156-OP
+                                                      +-------------------------------+   +-------------------------------+
+                                                          1         5           6             0         0           0
+
+                                                      +-------------------------------+   +-------------------------------+
+EPI - Enable Processor Interrupt (156)................| 0   1   1   0   1   1   1   0 |   | 0   0   0   0   0   0   0   1 |   15-X-OP, 156-OP
+                                                      +-------------------------------+   +-------------------------------+
+                                                          1         5           6             0         0           1
+
+                                                      +-------------------------------+   +-------------------------------+
+CPI - Clear Processor Interrupt (156).................| 0   1   1   0   1   1   1   0 |   | 0   0   0   0   0   0   1   0 |   15-X-OP, 156-OP
+                                                      +-------------------------------+   +-------------------------------+
+                                                          1         5           6             0         0           2
+
+                                                      +-------------------------------+   +-------------------------------+
+TRM - Load Terminal Identification (157)..............| 0   1   1   0   1   1   1   1 |   | 0   0   0   0   0   0   0   0 |   15-X-OP, 157-OP
+                                                      +-------------------------------+   +-------------------------------+
+                                                          1         5           7             0         0           0
+
+                                                      +-------------------------------+   +-------------------------------+
+LDA - Load Accumulator (200)......................... | 1   0   0   0   0   0   0   0 |   |            LITERAL            |   LOAD-OP, DIRECT
+      (Immediate Address)                             +-------------------------------+   +-------------------------------+
+                                                          2         0           0
+
+                                                      +-------------------------------+   +-------------------------------+
+LDA - Load Accumulator (210)......................... | 1   0   0   0   1   0   0   0 |   |            ADDRESS            |   LOAD-OP, DIRECT
+      (Immediate Address)                             +-------------------------------+   +-------------------------------+
+                                                          2         1           0
+
+                                                      +-------------------+-----------+   +-----------------------+---+---+
+LDA - Load Accumulator (21X)..........................| 1   0   0   0   1 |     IR    |   |    PAGE ADDRESS       | Y | Y | . LOAD-OP, INDIRECT
+      (Indexed Address)                               +-------------------+-----------+   +-----------------------+---+---+
+      YY - Index Register Control                         2         1           R             
+                  
+                                                      +-------------------+-----------+   +-------------------------------+
+LDX - Load Index Register (20X).......................| 1   0   0   0   0 |     IR    |   |            LITERAL            | . LOAD-OP, DIRECT
+                                                      +-------------------+-----------+   +-------------------------------+
+                                                          2         0           R
+                  
+                                                      +-------------------+-----------+   +-------------------------------+
+LIA - Load Instruction Address (22X)..................| 1   0   0   1   0 |     IR    |   |            LITERAL            | . STORE-OP, DIRECT
+                                                      +-------------------+-----------+   +-------------------------------+
+                                                          2         2           R
+
+                                                      +-------------------------------+   +-------------------------------+
+STA - Store Accumulator (230).........................| 1   0   0   1   1   0   0   0 |   |            ADDRESS            | . STORE-OP, INDIRECT
+      (Direct Address)                                +-------------------------------+   +-------------------------------+
+                                                          2         3           0
+
+                                                      +-------------------+-----------+   +-----------------------+---+---+
+STA - Store Accumulator (23X).........................| 1   0   0   1   1 |     IR    |   |    PAGE ADDRESS       | Y | Y | . STORE-OP, INDIRECT
+                                                      +-------------------+-----------+   +-----------------------+---+---+
+                                                          2         3           R
+
+                                                      +-------------------------------+   +-------------------------------+
+ADA - Add to Accumulator (240)........................| 1   0   1   0   0   0   0   0 |   |            LITERAL            | . DIRECT
+      (Immediate Address)                             +-------------------------------+   +-------------------------------+
+                                                          2         4           0
+                  
+                                                      +-------------------------------+   +-------------------------------+
+ADA - Add to Accumulator (250)........................| 1   0   1   0   1   0   0   0 |   |            ADDRESS            | . INDIRECT
+      (Direct Address)                                +-------------------------------+   +-------------------------------+
+                                                          2         5           0 
+
+                                                      +-------------------+-----------+   +-----------------------+---+---+
+ADA - Add to Accumulator (25X)........................| 1   0   1   0   1 |     IR    |   |    PAGE ADDRESS       | Y | Y | . INDIRECT
+      (Indexed Address)                               +-------------------+-----------+   +-----------------------+---+---+
+                                                          2         5           R
+
+                                                      +-------------------+-----------+   +-------------------------------+
+ADX - Add to Index Register (24X).....................| 1   0   1   0   0 |     IR    |   |            LITERAL            | . DIRECT
+                                                      +-------------------+-----------+   +-------------------------------+
+                                                          2         4           R
+
+                                                      +-------------------------------+   +-------------------------------+
+SUA - Subtract from Accumulator (260).................| 1   0   1   1   0   0   0   0 |   |            LITERAL            | . SUB-OP, DIRECT
+      (Immediate Address)                             +-------------------------------+   +-------------------------------+
+                                                          2         6           0
+
+                                                      +-------------------------------+   +-------------------------------+
+SUA - Subtract from Accumulator (270).................| 1   0   1   1   1   0   0   0 |   |            ADDRESS            | . SUB-OP, INDIRECT
+      (Direct Address)                                +-------------------------------+   +-------------------------------+
+                                                          2         7           0
+
+                                                      +-------------------+-----------+   +-----------------------+---+---+
+SUA - Subtract from Accumulator (27X).................| 1   0   1   1   1 |     IR    |   |      PAGE ADDRESS     | Y | Y | . SUB-OP, INDIRECT
+      (Indexed Address)                               +-------------------+-----------+   +-----------------------+---+---+
+                                                          2         7           R
+
+                                                      +-------------------+-----------+   +-------------------------------+
+SUX - Subtract from Index Register (26X)..............| 1   0   1   1   0 |     IR    |   |            LITERAL            | . SUB-OP, DIRECT
+                                                      +-------------------+-----------+   +-------------------------------+
+                                                          2         6           R
+
+                                                      +-------------------------------+   +-------------------------------+
+ANA - Logical AND to Accumulator (300)................| 1   1   0   0   0   0   0   0 |   |            LITERAL            | . AND-OP, DIRECT
+      (Immediate Address)                             +-------------------------------+   +-------------------------------+
+                                                          3         0           0
+
+                                                      +-------------------------------+   +-------------------------------+
+ANA - Logical AND to Accumulator (310)................| 1   1   0   0   1   0   0   0 |   |            ADDRESS            | . AND-OP, INDIRECT
+      (Direct Address)                                +-------------------------------+   +-------------------------------+
+                                                          3         1           0
+
+                                                      +-------------------+-----------+   +-----------------------+---+---+
+ANA - Logical AND to Accumulator (31X)................| 1   1   0   0   1 |     IR    |   |      PAGE ADDRESS     | Y | Y | . AND-OP, INDIRECT
+      (Indexed Address)                               +-------------------+-----------+   +-----------------------+---+---+
+                                                          3         1           R
+
+                                                      +-------------------+-----------+   +-------------------------------+
+SAN - Shift and Logical AND to Accumulator (30X)......| 1   1   0   0   0 | SHIFT CNT |   |            LITERAL            | . AND-OP, DIRECT
+                                                      +-------------------+-----------+   +-------------------------------+
+                                                          3         0           C
+
+                                                      +-------------------------------+   +-------------------------------+
+ERA - Exclusive OR to Accumulator (320)...............| 1   1   0   1   0   0   0   0 |   |            LITERAL            | . EX-OR-OP, DIRECT
+      (Immediate Address)                             +-------------------------------+   +-------------------------------+
+                                                          3          2          0
+
+                                                      +-------------------------------+   +-------------------------------+
+ERA - Exclusive OR to Accumulator (330)...............| 1   1   0   1   1   0   0   0 |   |            ADDRESS            | . EX-OR-OP, INDIRECT
+      (Direct Address)                                +-------------------------------+   +-------------------------------+
+                                                          3         3           0
+                  
+                                                      +-------------------+-----------+   +-----------------------+---+---+
+ERA - Exclusive OR to Accumulator (33X)...............| 1   1   0   1   1 |     IR    |   |      PAGE ADDRESS     | Y | Y | . EX-OR-OP, INDIRECT
+      (Indexed Address)                               +-------------------+-----------+   +-----------------------+---+---+
+                                                          3         3           R
+
+                                                      +-------------------+-----------+   +-------------------------------+
+SER - Shift and Exclusive OR to Accumulator (32X).... | 1   1   0   1   0 | SHIFT CNT |   |            LITERAL            | . EX-OR-OP, DIRECT
+                                                      +-------------------+-----------+   +-------------------------------+
+                                                          3         2           C
+
+                                                      +-------------------------------+   +-------------------------------+
+IRA - Inclusive OR to Accumulator (360).............. | 1   1   1   1   0   0   0   0 |  |             LITERAL            | . OR-OP, DIRECT
+      (Immediate Address)                             +-------------------------------+   +-------------------------------+
+                                                          3         6           0
+
+                                                      +-------------------------------+   +-------------------------------+
+IRA - Inclusive OR to Accumulator (370).............. | 1   1   1   1   1   0   0   0 |   |            ADDRESS            | . OR-OP, INDIRECT
+      (Direct Address)                                +-------------------------------+   +-------------------------------+
+                                                          3         7           0
+
+                                                      +-------------------+-----------+   +-----------------------+---+---+
+IRA - Inclusive OR to Accumulator (37X).............. | 1   1   1   1   1 |     IR    |   |     PAGE ADDRESS      | Y | Y | . OR-OP, INDIRECT
+      (Indexed Address)                               +-------------------+-----------+   +-----------------------+---+---+
+                                                          3         7           R
+
+                                                      +-------------------+-----------+   +-------------------------------+
+SIR - Shift and Inclusive OR to Accumulator (36X).... | 1   1   1   1   0 | SHIFT CNT |   |            LITERAL            | . OR-OP, DIRECT
+                                                      +-------------------+-----------+   +-------------------------------+
+                                                          3         6           C
+
+                                                      +-------------------------------+   +-------------------------------+
+CPA - Compare Accumulator (340)...................... | 1   1   1   0   0   0   0   0 |   |            LITERAL            | . COMP-OP, DIRECT
+      (Immediate Address)                             +-------------------------------+   +-------------------------------+
+                                                          3         4           0
+
+                                                      +-------------------------------+   +-------------------------------+
+CPA - Compare Accumulator (350)...................... | 1   1   1   0   1   0   0   0 |   |            ADDRESS            | . COMP-OP, INDIRECT
+      (Direct Address)                                +-------------------------------+   +-------------------------------+
+                                                          3         5           0
+
+                                                      +-------------------+-----------+   +-----------------------+---+---+
+CPA - Compare Accumulator (35X)...................... | 1   1   1   0   1 |     IR    |   |     PAGE ADDRESS      | Y | Y | . COMP-OP, INDIRECT
+      (Indexed Address)                               +-------------------+-----------+   +-----------------------+---+---+
+                                                          3         5           R
+
+                                                      +-------------------+-----------+   +-------------------------------+
+CPX - Compare Index Register (34X)................... | 1   1   1   0   0 |     IR    |   |            LITERAL            | . COMP-OP, DIRECT
+                                                      +-------------------+-----------+   +-------------------------------+
+                                                          3         4           R
+
+```
+*Figure 2-13. Processor Instruction Set*
 
 
 
@@ -964,22 +1179,6 @@ This instruction performs both the set memory section operation of SMS and the s
 
 This instruction forces the condition register to a condition that depends on the state of bits 4 and 5 of the accumulator, at the time of the SAC instruction, as follows:
 
-** SMS - Set Memory Section
-
-The set memory section instruction provides a means of transferring from the current section of memory to another section. A branch instruction (branch, stack and branch, or exit and branch) preceded by an SMS instruction will transfer to the address defined by the branch address and the section specified in the Set Memory Section instruction operand. (Timing: 4 microseconds.)
-
-** SMC - Set Memory Control
-
-This instruction controls the state of the U and V bits. A description of how the U and V bits affect memory addressing appears later in the processor description.
-
-** SSC - Set Memory Section and Control
-
-This instruction performs both the set memory section operation of SMS and the set memory control operation of SMC. (Timing: 4 microseconds.)
-
-** SAC - Set Arithmetic Condition
-
-This instruction forces the condition register to a condition that depends on the state of bits 4 and 5 of the accumulator, at the time of the SAC instruction, as follows:
-
 ACCUMULATOR   CONDITION
 BITS          FORCED
   5 4
@@ -991,11 +1190,11 @@ BITS          FORCED
 
 (Timing: 4 microseconds)
 
-** LSW - Load Sense Switches
+**LSW - Load Sense Switches**
 
 This instruction loads the state of 8 toggle switches into the accumulator. This instruction is available only for those units with the sense switch option. (Timing: 4 microseconds.)
 
-** EMP - Enable Memory Parity
+**EMP - Enable Memory Parity**
 
 This instruction enables the parity checking circuits in the memory and clears any previous parity error. This instruction is used only with the 16,384-byte memory that has parity checking capability. (Timing: 4 microseconds.)
 
@@ -1099,7 +1298,63 @@ The contents of the operation register are designated OP0 through OP7, and are d
 
 
 
-[FReD PAGE 2-35]
+
+Table 2-2. Operation of Class 1 Decoder B15
+
+                         OP CODE BIT
++---+---+---+---+---+----------------+------------------+------------------------------+
+| 7 | 6 | 5 | 4 | 3 | ACTIVE B15 PIN | ACTIVE SIGNAL    | INSTRUCTION TYPE             |
++---+---+---+---+---+----------------+------------------+------------------------------+
+| 0 | 1 | 0 | 0 | 0 | 1              | BCD-UNC          | BRANCH UNCONDITIONAL         |
+| 0 | 1 | 0 | 0 | 1 | 2              | BCD              | BRANCH                       |
+| 0 | 1 | 0 | 1 | 0 | 3              | STK-UNC          | STACK & BRANCH UNCONDITIONAL |
+| 0 | 1 | 0 | 1 | 1 | 4              | STK              | STACK & BRANCH               |
+| 0 | 1 | 1 | 0 | 0 | 5              | EXIT             | EXIT                         |
+| 0 | 1 | 1 | 0 | 1 | 6              | N-15-X-OP        | 15X OP CODE                  |
+| 0 | 1 | 1 | 1 | 0 | 7              | N-EXIT-BRANCH    | EXIT & BRANCH UNCONDITIONAL  |
+| 0 | 1 | 1 | 1 | 1 | 9              | N-I/O-OP         | I/O OP CODE                  |
++---+---+---+---+---+----------------+------------------+------------------------------+
+
+Table 2-3. Operation of Class 1 and 15X Decoder B16
+
+                      OP CODE BIT
++----------------+---+---+---+----------------+------------------+-------------------------------+
+| 15-X-OP SIGNAL | 2 | 1 | 0 | ACTIVE B16 PIN | ACTIVE SIGNAL    | INSTRUCTION TYPE              |
++----------------+---+---+---+----------------+------------------+-------------------------------+
+| LOW            | 0 | 0 | 0 | 1              | N-SECTION-OP     | SET MEMORY SECTION            |
+|                | 0 | 0 | 1 | 2              | N-151-OP         | SET MEMORY CONTROL            |
+|                | 0 | 1 | 0 | 3              | N-152-OP         | SET MEMORY SECTION & CONTROL  |
+|                | 0 | 1 | 1 | 4              | N-153-OP         | SET CONDITION REGISTER        |
+|                | 1 | 0 | 0 | 5              | N-SENSE-1        | LOAD SENSE SWITCH             |
+|                | 1 | 0 | 1 | 6              | N-155-OP         | LOAD PROCESSOR STATUS         |
+|                | 1 | 1 | 0 | 7              | N-156-OP         | INTERRUPT CONTROL             |
+|                | 1 | 1 | 1 | 9              | N-157-OP         | LOAD TERMINAL ID              |
++----------------+---+---+---+----------------+------------------+-------------------------------+
+
+
+Table 2-4. Operation of Class 2 and 3 Decoder B14
+
+                 OP CODE BIT
++---+---+---+---+----------------+----------------+------------------+
+| 7 | 6 | 5 | 4 | ACTIVE B14 PIN | ACTIVE SIGNAL  | INSTRUCTION TYPE |
++---+---+---+---+----------------+----------------+------------------+
+| 1 | 0 | 0 | 0 | 1              | N-LOAD-OP      | LOAD             |
+| 1 | 0 | 0 | 1 | 2              | N-STORE-OP     | STORE            |
+| 1 | 0 | 1 | 1 | 4              | N-SUB-OP       | SUBTRACT         |
+| 1 | 1 | 0 | 0 | 5              | N-AND-OP       | LOGICAL AND      |
+| 1 | 1 | 0 | 1 | 6              | N-EX-OR-OP     | EXCLUSIVE OR     |
+| 1 | 1 | 1 | 0 | 7              | N-COMP-OP      | COMPARE          |
+| 1 | 1 | 1 | 1 | 9              | N-OR-OP        | INCLUSIVE OR     |
++---+---+---+---+----------------+----------------+------------------+
+
+The operation decoder is shown at the left side of sheet 3 of the processor logic diagram. Its purpose is to decode the left half of the instruction word (IWL) and activate control lines to indicate which instruction is held in the operation register. Tables 2-2 through 2-4 list Class 1 through 3 instructions and show which control lines are activated by each instruction.
+
+As described earlier in this section, the two high order bits (OP7 and OP6) indicate the class of instruction (0, 1, 2, or 3). For the four class 0 instructions, both OP7 and OP6 are zeros. This causes the operation decoder to activate the BR-OFFSET-OP line.
+
+Class 1, 2, and 3 instructions require that additional bits of the operation code be decoded to further define the instruction. In addition, some Class 2 and 3 instructions may use any one of three addressing modes (immediate, direct, and indexed). This choice is made by OP3, which is a zero for the immediate addressing mode and a one for the other two modes. By sensing bits OP7 and OP3, the operation decoder can determine that the instruction is class 2 and 3 and what addressing mode is to be used. For the immediate addressing mode, the decoder activates the DIRECT line. The other two modes, in which bit OP3 is a one, cause the decoder to activate the INDIRECT line.
+
+
+[FReD PAGE 2-37]
 
 
 
