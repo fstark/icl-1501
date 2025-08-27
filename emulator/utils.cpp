@@ -7,6 +7,7 @@
 #include <vector>
 #include <string>
 #include <stdint.h>
+#include <cstring>
 
 std::string to_octal(uint8_t value, int w )
 {
@@ -135,11 +136,12 @@ std::vector<uint8_t> vector_from_octal(std::string_view octal_numbers)
     return data;
 }
 
-std::vector<uint8_t> vector_from_ascii(std::string_view ascii_str)
+std::vector<uint8_t> vector_from_ascii(std::string_view ascii_str, bool underline)
 {
     static const char *table = " -_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ,#@-%$*.<>/()?c=\"!':;-\\&|";
     std::vector<uint8_t> data;
-    for (char ch : ascii_str)
+	uint8_t underline_mask = underline ? 0b010'00000 : 0;
+	for (char ch : ascii_str)
     {
         const char *pos = std::strchr(table, ch);
         if (!pos)
@@ -147,7 +149,7 @@ std::vector<uint8_t> vector_from_ascii(std::string_view ascii_str)
             std::cerr << "Error: ASCII character not found in table: '" << ch << "'" << std::endl;
             throw std::invalid_argument("ASCII character not found in table");
         }
-        data.push_back(static_cast<uint8_t>(pos - table));
+        data.push_back(static_cast<uint8_t>((pos - table)|underline_mask));
     }
     std::cout << "Loaded " << data.size() << " bytes from ASCII string" << std::endl;
     return data;

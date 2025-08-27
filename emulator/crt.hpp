@@ -20,19 +20,21 @@ class crt_t
 	bool mode4lines_;   /* Displays only 4 lines */
 
 	addrs_t screen_;	/* Start of screen memory */
-	addrs_t font_; 		/* Start of font memory */
+	const addrs_t font_; 		/* Start of font memory */
+	const addrs_t alt_font_; 		/* Start of font memory */
 
 	public:
 	crt_t( const memory_t &memory)
 		: memory_(memory)
 		, section_(0)
-		, level_(1)
+		, level_(0)
 		, interleaved_(false)
 		, underline_(false)
 		, disable_(false)
 		, mode4lines_(false)
 		, screen_{ section_, level_, 0 }
 		, font_{ 0, 4, 0 }
+		, alt_font_{ 0, 6, 0 }
 		{
 		}
 
@@ -64,7 +66,7 @@ class crt_t
 			// std::cout << y << " " << std::flush;
 			assert( x >= 0 && x < (matrix_width_*screen_columns_) );
 			assert( y+bit >= 0 && y+bit < (matrix_height_*screen_lines_) );
-			screen[y+bit][x] = (font_byte & (1<<(7-bit))) ? '*' : ' ';
+			screen[y+bit][x] = (font_byte & (1<<bit)) ? '*' : ' ';
 		}
 	}
 
@@ -73,6 +75,7 @@ class crt_t
 	void render(screen_buffer_t screen) const
 	{
 		int x = 0;
+		addrs_t underline_font = underline_ ? font_ : alt_font_;
 
 		for (auto column=0;column!=screen_columns_;column++)
 		{
@@ -85,6 +88,8 @@ class crt_t
 				{
 					auto char_addr = screen_ + column + line*screen_columns_;
 					auto ch = memory_[char_addr];
+					ch &= 0b0011'1111;
+					bool underline = underline_ && (ch & 0b010'00000);
 					auto font_addr = font_ + ch + charcol*64;
 					auto font_byte = memory_[font_addr];
 
@@ -92,7 +97,7 @@ class crt_t
 
 					render( screen, x, y, font_byte );
 					y += 8;
-					render( screen, x, y, BLANK );
+					render( screen, x, y, underline?BLANK:0b0000'0001 );
 					y += 8;
 				}
 				x++;
