@@ -5,16 +5,19 @@
 
 #include "iw.hpp"
 #include "tape_reader.hpp"
+#include "crt.hpp"
 
 class io_t
 {
     tape_reader_t tape_readers_[2];
     int tape_index_ = 1;
     uint8_t accumulator_ = 0;
+    crt_t crt_;
 
 public:
-    io_t()
+    io_t( memory_t &memory )
         : tape_readers_{nullptr,new tape_t({1, 2, 3, 4, 5})}
+        , crt_(memory)
     {
     }
 
@@ -25,11 +28,16 @@ public:
 
     static const int kTapeTransferByteBlocking = 0007;
 
+    const crt_t &crt() const
+    {
+        return crt_;
+    }
+
     // Instuction is assumed to be an IOC
     void execute(const iw_t &iw)
     {
-        int channel = iw.ioc_channel();
-        int function_code = iw.ioc_function_code();
+        uint8_t channel = iw.ioc_channel();
+        uint8_t function_code = iw.ioc_function_code();
 
         switch (channel)
         {
@@ -47,7 +55,10 @@ public:
                 throw std::runtime_error("Unimplemented tape function code: " + std::to_string(function_code));
             }
             break;
-        default:
+        case 4:
+            crt_.execute(function_code);
+            break;
+            default:
             throw std::runtime_error("Unimplemented IOC channel: " + std::to_string(channel));
         }
     }

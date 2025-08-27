@@ -255,6 +255,23 @@ void test_disassemble_memory(const std::string &adrs_string, const std::string &
     }
 }
 
+#include "crt.hpp"
+
+void display( const crt_t::screen_buffer_t screen )
+{
+    // std::cout << "\033[H"; // Move cursor to home position
+    std::cout << "SCREEN:" << std::endl;
+    for (auto row=0;row!=crt_t::matrix_height_*crt_t::screen_lines_;row++)
+    {
+        for (auto col=0;col!=crt_t::matrix_width_*crt_t::screen_columns_;col++)
+        {
+            std::cout << screen[row][col];
+        }
+        std::cout << std::endl;
+    }
+    std::cout << "-------" << std::flush;
+}
+
 int main(int argc, char **argv)
 {
     std::string adrs = "P01-000";
@@ -279,12 +296,17 @@ int main(int argc, char **argv)
     memory_t memory;
     load_bootstrap(memory);
 
-    io_t io;
+    io_t io( memory );
     cpu_t cpu(memory, io);
     cpu.reset();
     std::cout << "Bootstrap loaded into memory." << std::endl;
     while (1)
+    {
+        crt_t::screen_buffer_t screen = {};
         cpu.step();
+        io.crt().render( screen);
+        display( screen );
+    }
     std::cout << "CPU step executed." << std::endl;
 
     return 0;

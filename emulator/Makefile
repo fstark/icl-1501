@@ -3,7 +3,7 @@
 CXX = g++
 CXXFLAGS = -std=c++20 -O2 -Wall
 TARGET = icl1501
-SRC = addrs.cpp disassembler.cpp emulator.cpp io.cpp iw.cpp memory.cpp tape.cpp tape_reader.cpp utils.cpp 
+SRC = addrs.cpp crt.cpp disassembler.cpp emulator.cpp io.cpp iw.cpp memory.cpp tape.cpp tape_reader.cpp utils.cpp 
 HDR = $(SRC:.cpp=.hpp)
 OBJ = $(SRC:.cpp=.o)
 
