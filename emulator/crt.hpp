@@ -26,13 +26,13 @@ class crt_t
 	crt_t( const memory_t &memory)
 		: memory_(memory)
 		, section_(0)
-		, level_(0)
+		, level_(1)
 		, interleaved_(false)
 		, underline_(false)
 		, disable_(false)
 		, mode4lines_(false)
 		, screen_{ section_, level_, 0 }
-		, font_{ 4, 0, 0 }
+		, font_{ 0, 4, 0 }
 		{
 		}
 
@@ -68,7 +68,9 @@ class crt_t
 		}
 	}
 
-	void render( screen_buffer_t screen ) const
+	const uint8_t BLANK = 0x00;
+
+	void render(screen_buffer_t screen) const
 	{
 		int x = 0;
 
@@ -83,12 +85,14 @@ class crt_t
 				{
 					auto char_addr = screen_ + column + line*screen_columns_;
 					auto ch = memory_[char_addr];
-					auto font_addr = font_ + (ch*char_width_) + charcol;
+					auto font_addr = font_ + ch + charcol*64;
 					auto font_byte = memory_[font_addr];
+
+					std::cout << font_addr.as_string() << ":" << (int) font_byte << " ";
 
 					render( screen, x, y, font_byte );
 					y += 8;
-					render( screen, x, y, 0xff );
+					render( screen, x, y, BLANK );
 					y += 8;
 				}
 				x++;
@@ -100,9 +104,9 @@ class crt_t
 				/// There are 8 lines of chars on screen
 				for (auto line=0;line!=screen_lines_;line++)
 				{
-					render( screen, x, y, 0xff );
+					render(screen, x, y, BLANK);
 					y += 8;
-					render( screen, x, y, 0xff );
+					render(screen, x, y, BLANK);
 					y += 8;
 				}
 				x++;

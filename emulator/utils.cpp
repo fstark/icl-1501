@@ -1,4 +1,3 @@
-
 #include "utils.hpp"
 #include <cctype>
 #include <algorithm>
@@ -108,4 +107,48 @@ std::vector<uint8_t> vector_from_octal_pairs(std::string_view octal_pairs)
 
 	std::cout << "Loaded " << data.size() << " bytes from octal pairs" << std::endl;
 	return data;
+}
+
+// Parse space-separated 3-digit octal numbers into a vector<uint8_t>
+std::vector<uint8_t> vector_from_octal(std::string_view octal_numbers)
+{
+    std::vector<uint8_t> data;
+    std::string input{octal_numbers};
+    std::istringstream ss(input);
+    std::string octal_str;
+    while (ss >> octal_str)
+    {
+        if (octal_str.length() != 3 || octal_str.find_first_not_of("01234567") != std::string::npos)
+        {
+            std::cerr << "Error: Invalid octal number: " << octal_str << std::endl;
+			// std::cerr << octal_numbers << std::endl;
+            throw std::invalid_argument("Invalid octal number format");
+        }
+        int val = std::stoi(octal_str, nullptr, 8);
+        if (val < 0 || val > 255)
+        {
+            throw std::out_of_range("Octal value out of range");
+        }
+        data.push_back(static_cast<uint8_t>(val));
+    }
+    std::cout << "Loaded " << data.size() << " bytes from octal numbers" << std::endl;
+    return data;
+}
+
+std::vector<uint8_t> vector_from_ascii(std::string_view ascii_str)
+{
+    static const char *table = " -_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ,#@-%$*.<>/()?c=\"!':;-\\&|";
+    std::vector<uint8_t> data;
+    for (char ch : ascii_str)
+    {
+        const char *pos = std::strchr(table, ch);
+        if (!pos)
+        {
+            std::cerr << "Error: ASCII character not found in table: '" << ch << "'" << std::endl;
+            throw std::invalid_argument("ASCII character not found in table");
+        }
+        data.push_back(static_cast<uint8_t>(pos - table));
+    }
+    std::cout << "Loaded " << data.size() << " bytes from ASCII string" << std::endl;
+    return data;
 }

@@ -18,7 +18,7 @@ class addrs_t
 public:
     addrs_t(uint8_t b0, uint8_t b1) : b0(b0 & 0x3F), b1(b1) {}
     addrs_t(uint8_t section, uint8_t level, uint8_t location)
-        : b0((section << 3) | (level & 0x03)), b1(location) {}
+        : b0((section << 3) | (level & 0x07)), b1(location) {}
     addrs_t(uint16_t linear_address) : b0((linear_address >> 8) & 0x3f), b1(linear_address & 0xFF) {}
     addrs_t(const std::string &v)
     {
