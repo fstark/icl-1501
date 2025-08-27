@@ -38,6 +38,10 @@ class crt_t
 		{
 		}
 
+	addrs_t screen() const { return screen_; }
+	addrs_t font() const { return font_; }
+	addrs_t alt_font() const { return alt_font_; }
+
 	static const int char_width_ = 5;
 	static const int char_height_ = 8;
 	static const int matrix_width_ = 8;

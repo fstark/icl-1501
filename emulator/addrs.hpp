@@ -117,7 +117,7 @@ public:
         return (*this) + 2;
     }
 
-    std::string as_string()
+    const std::string as_string() const
     {
         char buffer[8];
         snprintf(buffer, sizeof(buffer), "P%02o-%03o", page(), location());

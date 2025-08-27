@@ -35,6 +35,10 @@ class cpu_t
 
     disassembler_t disassembler;
 
+public:
+    memory_t &memory() { return memory_; }
+    io_t &io() { return io_; }
+
     uint8_t sp() const { return sp_ & 0x1f; }
 
     addrs_t sp_base( int stack ) const
@@ -71,14 +75,12 @@ class cpu_t
         return memory_[index_register_addrs(reg)];
     }
 
-    
-public:
     cpu_t(memory_t &mem, io_t &io_device) : memory_(mem), io_(io_device) {}
 
     void reset()
     {
         sp_ = 0;
-        set_iaw(addrs_t(0, 030));
+        set_iaw(addrs_t(1, 0));
         compare_ = kEqual;
     }
 

@@ -90,10 +90,10 @@ void load_font(memory_t &memory)
     {
         memory[a] ^= 0xff; // Inverted font
     }
-    memory.copy("P01-000", vector_from_ascii( " -_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ,#@-%$*.<>/()?c=\"!':;-\\&|"));
-    memory.copy("P01-100", vector_from_ascii(" -_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ,#@-%$*.<>/()?c=\"!':;-\\&|",true));
-    memory.copy("P01-200", vector_from_ascii(" -_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ,#@-%$*.<>/()?c=\"!':;-\\&|"));
-    memory.copy("P01-300", vector_from_ascii(" -_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ,#@-%$*.<>/()?c=\"!':;-\\&|",true));
+    memory.copy("P10-000", vector_from_ascii( " -_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ,#@-%$*.<>/()?c=\"!':;-\\&|"));
+    memory.copy("P10-100", vector_from_ascii(" -_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ,#@-%$*.<>/()?c=\"!':;-\\&|",true));
+    memory.copy("P10-200", vector_from_ascii(" -_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ,#@-%$*.<>/()?c=\"!':;-\\&|"));
+    memory.copy("P10-300", vector_from_ascii(" -_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ,#@-%$*.<>/()?c=\"!':;-\\&|",true));
 }
 
 void test_cpu_t()
@@ -104,8 +104,7 @@ void test_cpu_t()
     load_font(memory);
 
     io_t io( memory );
-    // io.execute(iw_t{0174, 0b00000010}); // IOC C#4 020 ; Screen in P01-000, no underline
-    io.execute(iw_t{0174, 0b00001010}); // IOC C#4 020 ; Screen in P01-000, underline
+    io.execute(iw_t{0174, 0b00000010}); // IOC C#4 020 ; Screen in P01-000, no underline
 
     cpu_t cpu(memory, io);
     cpu.reset();
@@ -120,9 +119,265 @@ void test_cpu_t()
     std::cout << "CPU step executed." << std::endl;
 }
 
+class emulator_t
+{
+    memory_t memory_;
+    io_t io_;
+    cpu_t cpu_;
+    crt_t::screen_buffer_t screen_;
+public:
+    emulator_t() : memory_(), io_(memory_), cpu_(memory_, io_)
+    {
+        load_bootstrap(memory_);
+        load_font(memory_);
+        // io_.execute(iw_t{0174, 0b00001010}); // IOC C#4 020 ; Screen in P01-000, underline
+        io_.execute(iw_t{0174, 0b01001000}); // IOC C#4 120 ; Screen in P10-000, underline
+        cpu_.reset();
+        io_.crt().render( screen_ );
+    }
+
+    cpu_t &cpu() { return cpu_; }
+    io_t &io() { return io_; }
+    memory_t &memory() { return memory_; }
+    crt_t::screen_buffer_t &screen() { return screen_; }
+
+    void step()
+    {
+        cpu_.step();
+        io_.crt().render(screen_);
+        display(screen_);
+    }
+};
+
+#include "imgui.h"
+#include "backends/imgui_impl_sdl2.h"
+#include "backends/imgui_impl_opengl3.h"
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_opengl.h>
+
+#include <format>
+
+addrs_t sAdrs("P00-000");
+
+void render_memory( const memory_t &memory, const addrs_t &addrs )
+{
+    ImGui::Begin( "Octal Dump" );
+    ImGui::Text("%s", std::format("Section: {}, Level: {}", addrs.section(), addrs.level()).c_str());
+    addrs_t a = addrs;
+    for (int l=0;l!=16;l++)
+    {
+        ImGui::Text("%s : ", a.as_string().c_str());
+        for (int c=0;c!=16;c++)
+        {
+            ImGui::SameLine();
+            ImGui::Text("%s", to_octal(memory[a]).c_str());
+            a = a + 1;
+        }
+    }
+    if (ImGui::Button("Prev"))
+    {
+        sAdrs = sAdrs +(-256);
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Next"))
+    {
+        sAdrs = sAdrs + 256;
+    }
+    ImGui::End();
+} 
+
+void render_disassemly( const memory_t &memory, const addrs_t &addrs, const addrs_t &iaw )
+{
+    disassembler_t disassembler;
+    ImGui::Begin( "Disassembly" );
+    ImGui::Text("%s", std::format("Section: {}, Level: {}", addrs.section(), addrs.level()).c_str());
+    addrs_t a = addrs;
+    for (int l=0;l!=16;l++)
+    {
+        if (a==iaw)
+            ImGui::Text("->");
+        else
+            ImGui::Text("  ");
+        ImGui::SameLine();
+        ImGui::Text("%s : ", a.as_string().c_str());
+        iw_t w = memory.get_instruction(a);
+        ImGui::SameLine();
+        ImGui::Text("%s      %s", w.as_octal().c_str(), disassembler.disassemble(w).c_str());
+        a = a.next_instruction();
+    }
+    ImGui::End();
+}
+
+void render_crt( const crt_t &crt )
+{
+    ImGui::Begin( "CRT" );
+    ImGui::Text( "  Screen: %s", crt.screen().as_string().c_str() );
+    ImGui::Text( "    Font: %s", crt.font().as_string().c_str() );
+    ImGui::Text( "Alt Font: %s", crt.alt_font().as_string().c_str() );
+    ImGui::End();
+}
+
+void render_screen( const crt_t::screen_buffer_t &screen)
+{
+    static GLuint texture = 0;
+    static int last_width = 0, last_height = 0;
+    const int width = crt_t::matrix_width_ * crt_t::screen_columns_;
+    const int height = crt_t::matrix_height_ * crt_t::screen_lines_;
+
+    // Convert screen buffer to RGBA pixels
+    std::vector<unsigned char> pixels(width * height * 4);
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            char c = screen[y][x];
+            unsigned char v = (c == ' ' || c == 0) ? 0 : 255; // black for space, white otherwise
+            int idx = (y * width + x) * 4;
+            pixels[idx + 0] = v; // R
+            pixels[idx + 1] = v; // G
+            pixels[idx + 2] = v; // B
+            pixels[idx + 3] = 255; // A
+        }
+    }
+
+    // Create or update texture
+    if (!texture || last_width != width || last_height != height) {
+        if (texture) glDeleteTextures(1, &texture);
+        glGenTextures(1, &texture);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+        last_width = width;
+        last_height = height;
+    } else {
+        glBindTexture(GL_TEXTURE_2D, texture);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+    }
+
+    ImGui::Begin("Screen");
+    ImGui::Image((void*)(intptr_t)texture, ImVec2(width * 2, height * 2)); // scale up for visibility
+    ImGui::End();
+}
+
+void render_cpu( cpu_t &cpu )
+{
+    ImGui::Begin("CPU State");
+    auto pc = cpu.iaw();
+    auto iw = cpu.memory().get_instruction(pc);
+    ImGui::Text("PC: %s", pc.as_string().c_str());
+    ImGui::SameLine();
+    ImGui::Text("IW: %s", iw.as_octal().c_str());
+    static disassembler_t disassembler;
+    ImGui::Text("Disasm: %s", disassembler.disassemble(iw).c_str());
+
+    ImGui::Separator();
+    ImGui::Text("SP: %d", cpu.sp());
+    ImGui::Text("Stack:");
+    for (int i = 0; i < 8; ++i) {
+        std::string label = (i == cpu.sp() ? "*" : " ");
+        label += cpu.sp_base(i).as_string();
+        ImGui::Text("%s", label.c_str());
+        label = cpu.memory().get_addrs(cpu.sp_base(i)).as_string();
+        ImGui::SameLine(80);
+        ImGui::Text("%s", label.c_str());
+    }
+
+    ImGui::Separator();
+    static const char *compare_str[] = {"L", "E", "H"};
+    ImGui::Text("ACC: %s", to_octal(cpu.io().accumulator()).c_str());
+    ImGui::SameLine();
+    ImGui::Text("Compare: %s", compare_str[cpu.compare_]);
+
+    ImGui::Text("Index Registers:");
+    for (int i = 1; i <= 8; ++i)
+    {
+       ImGui::BeginGroup();
+       ImGui::Text("R#%d", i );
+       ImGui::Text("%s", to_octal(cpu.index_register(i)).c_str());
+       ImGui::EndGroup();
+       if (i < 8) ImGui::SameLine();
+    }
+
+    if (ImGui::Button("Reset"))
+    {
+        cpu.reset();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Step"))
+    {
+        cpu.step();
+    }
+    ImGui::End();
+}
+
+void render_emulator(emulator_t &emu)
+{
+    ImGui::Begin("ICL 1501");
+    if (ImGui::Button("Step"))
+        emu.step();
+    ImGui::End();
+
+    render_cpu( emu.cpu() );
+    render_crt( emu.io().crt() );
+    render_screen( emu.screen() );
+    render_memory( emu.memory(), sAdrs );
+    render_disassemly( emu.memory(), "P01-000", emu.cpu().iaw() );
+}
+
 void test_imgui()
 {
-    // IMGUI TEST GOES HERE
+    emulator_t emu;
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0) {
+        std::cerr << "Failed to initialize SDL2: " << SDL_GetError() << std::endl;
+        return;
+    }
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+    SDL_Window* window = SDL_CreateWindow("Cogar C4/Singer 1501/ICL 1501 emulator", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1024, 768, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
+    SDL_GLContext gl_context = SDL_GL_CreateContext(window);
+    SDL_GL_MakeCurrent(window, gl_context);
+    SDL_GL_SetSwapInterval(1);
+
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    ImGui::StyleColorsDark();
+    ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
+    ImGui_ImplOpenGL3_Init("#version 130");
+
+    bool done = false;
+    while (!done) {
+        SDL_Event event;
+        while (SDL_PollEvent(&event)) {
+            ImGui_ImplSDL2_ProcessEvent(&event);
+            if (event.type == SDL_QUIT)
+                done = true;
+            if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(window))
+                done = true;
+        }
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplSDL2_NewFrame();
+        ImGui::NewFrame();
+
+        render_emulator(emu);
+
+        ImGui::Render();
+        glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
+        glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        SDL_GL_SwapWindow(window);
+    }
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplSDL2_Shutdown();
+    ImGui::DestroyContext();
+    SDL_GL_DeleteContext(gl_context);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
 }
 
 int main(int argc, char **argv)
@@ -146,7 +401,7 @@ int main(int argc, char **argv)
     test_disassemble_memory(adrs, data);
     // icl1501::iw_t::test();
 
-    test_cpu_t();
+    // test_cpu_t();
 
     test_imgui();
 
