@@ -75,7 +75,6 @@ class crt_t
 	void render(screen_buffer_t screen) const
 	{
 		int x = 0;
-		addrs_t underline_font = underline_ ? font_ : alt_font_;
 
 		for (auto column=0;column!=screen_columns_;column++)
 		{
@@ -88,16 +87,14 @@ class crt_t
 				{
 					auto char_addr = screen_ + column + line*screen_columns_;
 					auto ch = memory_[char_addr];
-					ch &= 0b0011'1111;
-					bool underline = underline_ && (ch & 0b010'00000);
-					auto font_addr = font_ + ch + charcol*64;
+					bool underline = underline_ && (ch & 0b0100'0000);
+					bool alt_font = !underline_ && (ch & 0b0100'0000);
+					auto font_addr = (alt_font ? alt_font_ : font_) + (ch & 0b0011'1111) + charcol * 64;
 					auto font_byte = memory_[font_addr];
-
-					std::cout << font_addr.as_string() << ":" << (int) font_byte << " ";
 
 					render( screen, x, y, font_byte );
 					y += 8;
-					render( screen, x, y, underline?BLANK:0b0000'0001 );
+					render( screen, x, y, underline?0b0000'0001:BLANK );
 					y += 8;
 				}
 				x++;

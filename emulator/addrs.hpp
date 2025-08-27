@@ -20,6 +20,7 @@ public:
     addrs_t(uint8_t section, uint8_t level, uint8_t location)
         : b0((section << 3) | (level & 0x07)), b1(location) {}
     addrs_t(uint16_t linear_address) : b0((linear_address >> 8) & 0x3f), b1(linear_address & 0xFF) {}
+    addrs_t(const char * v) : addrs_t(std::string(v)) {}
     addrs_t(const std::string &v)
     {
         if (v.size() != 7 || v[0] != 'P' || v[3] != '-')
@@ -98,6 +99,11 @@ public:
     bool operator==(const addrs_t &other) const
     {
         return b0 == other.b0 && b1 == other.b1;
+    }
+
+    bool operator!=(const addrs_t &other) const
+    {
+        return !(*this == other);
     }
 
     addrs_t operator+(uint16_t offset) const
