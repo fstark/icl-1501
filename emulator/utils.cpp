@@ -18,6 +18,28 @@ std::string to_octal(uint8_t value, int w )
 	return std::string(buffer);
 }
 
+bool is_octal(const std::string &octal_str)
+{
+	if (octal_str.length() > 3 || octal_str.find_first_not_of("01234567") != std::string::npos)
+		return false;
+	return true;
+}
+
+uint8_t from_octal(const std::string &octal_str)
+{
+	if (!is_octal(octal_str))
+		{
+			std::cerr << "Error: Invalid octal number: " << octal_str << std::endl;
+			throw std::invalid_argument("Invalid octal number format");
+		}
+	int val = std::stoi(octal_str, nullptr, 8);
+	if (val < 0 || val > 255)
+	{
+		throw std::out_of_range("Octal value out of range");
+	}
+	return static_cast<uint8_t>(val);
+}
+
 // Load from hex string
 std::vector<uint8_t> vector_from_hex(std::string_view hex_str)
 {

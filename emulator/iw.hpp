@@ -18,6 +18,16 @@ class iw_t
 public:
     iw_t(uint8_t left, uint8_t right) : iwl_(left), iwr_(right) {}
 
+    bool operator==(const iw_t &other) const
+    {
+        return iwl_ == other.iwl_ && iwr_ == other.iwr_;
+    }
+
+    bool operator!=(const iw_t &other) const
+    {
+        return !(*this == other);
+    }
+
     typedef enum
     {
         kUnchanged = 0b00,
@@ -35,9 +45,20 @@ public:
         return iwr_;
     }
 
+    void set_iwr(uint8_t right)
+    {
+        iwr_ = right;
+    }
+
     uint16_t as_word() const
     {
         return ((uint16_t)iwl_ << 8) | iwr_; // Combine left and right words into a linear address
+    }
+
+    void set_word(uint16_t word)
+    {
+        iwl_ = (word >> 8) & 0xFF;
+        iwr_ = word & 0xFF;
     }
 
     eIndexingMode indexing_mode() const
@@ -45,9 +66,20 @@ public:
         return static_cast<eIndexingMode>(iwr_ & 0b11); // bits 0-1 of the right word
     }
 
+    void set_indexing_mode(eIndexingMode mode)
+    {
+        iwr_ = (iwr_ & 0b11111100) | (mode & 0b00000011);
+    }
+
     uint8_t indexing_register() const
     {
         return iwl_ & 0b111; // bits 0-2 of the left word
+    }
+
+    void set_indexing_register(uint8_t reg)
+    {
+        assert(reg < 8);
+        iwl_ = (iwl_ & 0b11111000) | (reg & 0b00000111);
     }
 
     std::string indexing_register_name() const
@@ -87,6 +119,12 @@ public:
         return addrs_t(0, iwl_ & 0b0000111, iwr_ & 0b01111110);
     }
 
+    void set_address(const addrs_t &addr)
+    {
+        iwl_ = (iwl_ & 0b11111000) | (addr.level() & 0b00000111);
+        iwr_ = (iwr_ & 0b10000001) | (addr.location() & 0b01111110);
+    }
+
     uint8_t section1() const
     {
         return (iwr_ & 0b00111000) >> 3;
@@ -106,6 +144,12 @@ public:
     uint8_t page_number() const
     {
         return (iwr_ & 0b11111100);
+    }
+
+    void set_page_number(uint8_t page)
+    {
+        assert(page < 64);
+        iwr_ = (iwr_ & 0b00000011) | (page & 0b11111100);
     }
 
     uint8_t shift_count() const
@@ -135,24 +179,25 @@ public:
         return compare(value1, mask1, 0, 0);
     }
 
+    static char register_char(eIndexingMode mode = kUnchanged)
+    {
+        switch (mode)
+        {
+        case kIncrement:
+            return 'I';
+        case kDecrement:
+            return 'D';
+        case kUnchanged:
+            return 'R';
+        }
+        throw std::runtime_error("Invalid indexing mode ("s+std::to_string(mode)+")");
+    }
+
     static std::string register_name(uint8_t reg, eIndexingMode mode = kUnchanged)
     {
         if (reg >= 8)
             return "R?";
-        std::string reg_name;
-        switch (mode)
-        {
-        case kIncrement:
-            reg_name = "I";
-            break;
-        case kDecrement:
-            reg_name = "D";
-            break;
-        case kUnchanged:
-            reg_name = "R";
-            break;
-        }
-        return reg_name + "#" + std::to_string(reg);
+        return ""s + register_char(mode) + "#" + std::to_string(reg);
     }
 
     typedef enum
@@ -229,6 +274,12 @@ public:
     uint8_t ioc_channel() const
     {
         return iwl_ & 0b00000111;
+    }
+
+    void set_ioc_channel(uint8_t channel)
+    {
+        assert(channel < 8);
+        iwl_ = (iwl_ & 0b11111000) | (channel & 0b00000111);
     }
 
     uint8_t ioc_function_code() const
@@ -353,11 +404,10 @@ public:
 
     static const int kDECODE_NONE = 0x00;
     static const int kDECODE_JUMP = 0x01;
-    static const int kDECODE_LITERAL = 0x02;
+    static const int kDECODE_OLITERAL = 0x02;
     static const int kDECODE_INDEX_REGISTER = 0x04;
     static const int kDECODE_IOC = 0x08;
     static const int kDECODE_IOC_CHANNEL = 0x10;
-    static const int kDECODE_OLITERAL = 0x20;
     static const int kDECODE_INDEX_REGISTER_OP = 0x40;
     static const int kDECODE_PAGE_NUMBER = 0x80;
     static const int kDECODE_ADRS_LEVEL_BYTE = 0x100;
@@ -374,9 +424,10 @@ public:
     {
         static const std::vector<instruction_def> types = {
             instruction_def{kUnknown, "???", 0b00000000'00000000, 0b00000000'00000000, kDECODE_NONE},
-            instruction_def{kTLJ, "TLJ", 0b00000000'00000000, 0b11100000'00000000, kDECODE_JUMP | kDECODE_LITERAL},
+            // instruction_def{kUnknown, "???", 0b00000000'00000000, 0b11111111'00000000, kDECODE_NONE},
+            instruction_def{kTLJ, "TLJ", 0b00000000'00000000, 0b11100000'00000000, kDECODE_JUMP | kDECODE_OLITERAL},
             instruction_def{kTMJ, "TMJ", 0b00100000'00000000, 0b11100000'00000000, kDECODE_JUMP | kDECODE_MASK},
-            instruction_def{kTLX, "TLX", 0b00000000'00000000, 0b11111111'00000000, kDECODE_LITERAL},
+            instruction_def{kTLX, "TLX", 0b00000000'00000000, 0b11111111'00000000, kDECODE_OLITERAL},
             instruction_def{kTMX, "TMX", 0b00100000'00000000, 0b11111111'00000000, kDECODE_MASK},
             instruction_def{kBRU, "BRU", 0b01000000'00000000, 0b11111000'00000001, kDECODE_ADRS_LEVEL_BYTE},
             instruction_def{kBRE, "BRE", 0b01000000'00000001, 0b11111000'00000001, kDECODE_ADRS_LEVEL_BYTE},
@@ -399,21 +450,21 @@ public:
             instruction_def{kEPI, "EPI", 0b01101110'00000001, 0b11111111'11111111, 0},
             instruction_def{kCPI, "CPI", 0b01101110'00000010, 0b11111111'11111111, 0},
             instruction_def{kTRM, "TRM", 0b01101111'00000000, 0b11111111'11111111, 0},
-            instruction_def{kLDA_Imm, "LDA", 0b10000000'00000000, 0b11111111'00000000, kDECODE_LITERAL},
+            instruction_def{kLDA_Imm, "LDA", 0b10000000'00000000, 0b11111111'00000000, kDECODE_OLITERAL},
             instruction_def{kLDA_Dir, "LDA", 0b10001000'00000000, 0b11111111'00000000, kDECODE_ADRS_BYTE},
             instruction_def{kLDA_Ind, "LDA", 0b10001000'00000000, 0b11111000'00000000, kDECODE_INDEX_REGISTER_OP | kDECODE_SECTION_LEVEL},
-            instruction_def{kLDX, "LDX", 0b10000000'00000000, 0b11111000'00000000, kDECODE_INDEX_REGISTER | kDECODE_LITERAL},
-            instruction_def{kLIA, "LIA", 0b10010000'00000000, 0b11111000'00000000, kDECODE_INDEX_REGISTER | kDECODE_LITERAL},
+            instruction_def{kLDX, "LDX", 0b10000000'00000000, 0b11111000'00000000, kDECODE_INDEX_REGISTER | kDECODE_OLITERAL},
+            instruction_def{kLIA, "LIA", 0b10010000'00000000, 0b11111000'00000000, kDECODE_INDEX_REGISTER | kDECODE_OLITERAL},
             instruction_def{kSTA_Dir, "STA", 0b10011000'00000000, 0b11111111'00000000, kDECODE_ADRS_BYTE},
             instruction_def{kSTA_Ind, "STA", 0b10011000'00000000, 0b11111000'00000000, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
-            instruction_def{kADA_Imm, "ADA", 0b10100000'00000000, 0b11111111'00000000, kDECODE_LITERAL},
+            instruction_def{kADA_Imm, "ADA", 0b10100000'00000000, 0b11111111'00000000, kDECODE_OLITERAL},
             instruction_def{kADA_Dir, "ADA", 0b10101000'00000000, 0b11111111'00000000, kDECODE_ADRS_BYTE},
             instruction_def{kADA_Ind, "ADA", 0b10101000'00000000, 0b11111000'00000000, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
-            instruction_def{kADX, "ADX", 0b10100000'00000000, 0b11111000'00000000, kDECODE_INDEX_REGISTER | kDECODE_LITERAL},
-            instruction_def{kSUA_Imm, "SUA", 0b10110000'00000000, 0b11111111'00000000, kDECODE_LITERAL},
+            instruction_def{kADX, "ADX", 0b10100000'00000000, 0b11111000'00000000, kDECODE_INDEX_REGISTER | kDECODE_OLITERAL},
+            instruction_def{kSUA_Imm, "SUA", 0b10110000'00000000, 0b11111111'00000000, kDECODE_OLITERAL},
             instruction_def{kSUA_Dir, "SUA", 0b10111000'00000000, 0b11111111'00000000, kDECODE_ADRS_BYTE},
             instruction_def{kSUA_Ind, "SUA", 0b10111000'00000000, 0b11111000'00000000, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
-            instruction_def{kSUX, "SUX", 0b10110000'00000000, 0b11111000'00000000, kDECODE_INDEX_REGISTER | kDECODE_LITERAL},
+            instruction_def{kSUX, "SUX", 0b10110000'00000000, 0b11111000'00000000, kDECODE_INDEX_REGISTER | kDECODE_OLITERAL},
             instruction_def{kANA_Imm, "ANA", 0b11000000'00000000, 0b11111111'00000000, kDECODE_BLITERAL},
             instruction_def{kANA_Dir, "ANA", 0b11001000'00000000, 0b11111111'00000000, kDECODE_ADRS_BYTE},
             instruction_def{kANA_Ind, "ANA", 0b11001000'00000000, 0b11111000'00000000, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
@@ -426,16 +477,21 @@ public:
             instruction_def{kIRA_Dir, "IRA", 0b11111000'00000000, 0b11111111'00000000, kDECODE_ADRS_BYTE},
             instruction_def{kIRA_Ind, "IRA", 0b11111000'00000000, 0b11111000'00000000, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
             instruction_def{kSIR, "SIR", 0b11110000'00000000, 0b11111000'00000000, kDECODE_SHIFT | kDECODE_BLITERAL},
-            instruction_def{kCPA_Imm, "CPA", 0b11100000'00000000, 0b11111111'00000000, kDECODE_LITERAL},
+            instruction_def{kCPA_Imm, "CPA", 0b11100000'00000000, 0b11111111'00000000, kDECODE_OLITERAL},
             instruction_def{kCPA_Dir, "CPA", 0b11101000'00000000, 0b11111111'00000000, kDECODE_ADRS_BYTE},
             instruction_def{kCPA_Ind, "CPA", 0b11101000'00000000, 0b11111000'00000000, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
-            instruction_def{kCPX, "CPX", 0b11100000'00000000, 0b11111000'00000000, kDECODE_INDEX_REGISTER | kDECODE_LITERAL},
+            instruction_def{kCPX, "CPX", 0b11100000'00000000, 0b11111000'00000000, kDECODE_INDEX_REGISTER | kDECODE_OLITERAL},
             instruction_def{kIOC, "IOC", 0b01111000'00000000, 0b11111000'00000000, kDECODE_IOC_CHANNEL | kDECODE_OLITERAL | kDECODE_IOC}};
         return types;
     }
 
     static const eInstructionType *instr_map()
     {
+        // for (size_t i=0;i!=types().size();i++)
+        // {
+        //     assert(types()[i].instr==i);
+        // }
+
 
         static eInstructionType instr_map[65536] = {kUnknown};
 
@@ -448,14 +504,18 @@ public:
                 {
                     if (std::popcount(type.mask) != bits)
                         continue;
-                    std::cout << type.mnemonic << " ("
-                              << std::bitset<16>(type.value) << ","
-                              << std::bitset<16>(type.mask) << ") = " << bits << " bits" << std::endl;
+                    // std::cout << type.mnemonic << " ("
+                    //           << std::bitset<16>(type.value) << ","
+                    //           << std::bitset<16>(type.mask) << ") = " << bits << " bits" << std::endl;
                     for (int i = 0; i < 65536; i++)
                     {
                         iw_t instr(i >> 8, i & 0xff);
                         if (instr.compare(type.value >> 8, type.mask >> 8, type.value & 0xff, type.mask & 0xff))
                         {
+                            if (i==0)
+                            {
+                                std::cout << "Mapping " << type.mnemonic << " to " << std::bitset<16>(i) << std::endl;
+                            }
                             instr_map[i] = type.instr;
                         }
                     }
@@ -489,6 +549,16 @@ public:
         s += to_octal(iwr_);
         return s;
     }
+
+    static iw_t from_octal(const std::string &s)
+    {
+        if (s.size() != 7 || s[3] != '-')
+            throw std::runtime_error("Invalid instruction word format: " + s);
+        auto left_str = s.substr(0, 3);
+        auto right_str = s.substr(4, 3);
+        return iw_t(::from_octal(left_str), ::from_octal(right_str));
+    }
+
 };
 
 void test_iw_t();

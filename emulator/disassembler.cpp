@@ -63,11 +63,6 @@ const std::string disassembler_t::disassemble(const iw_t& instruction) const
         result += " S#" + std::to_string(instruction.section1());
     }
 
-    if (decode & iw_t::kDECODE_LITERAL)
-    {
-        result += " " + std::to_string(instruction.literal());
-    }
-
     if (decode & iw_t::kDECODE_OLITERAL)
     {
         result += " " + to_octal(instruction.literal());

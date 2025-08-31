@@ -5,10 +5,13 @@
 #include <cstdio>
 #include <iomanip>
 #include <iostream>
+#include <fstream>
 #include <stdexcept>
 #include <vector>
 #include <bit>
 #include <algorithm>
+
+using namespace std::string_literals;
 
 class addrs_t
 {
@@ -25,7 +28,7 @@ public:
     {
         if (v.size() != 7 || v[0] != 'P' || v[3] != '-')
         {
-            throw std::invalid_argument("Invalid address format");
+            throw std::invalid_argument("Invalid address format ["s+v+"]");
         }
 
         try
@@ -37,7 +40,7 @@ public:
         }
         catch (const std::exception &e)
         {
-            throw std::invalid_argument("Invalid address format");
+            throw std::invalid_argument("Invalid address format ["s+v+"]");
         }
     }
 

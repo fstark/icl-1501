@@ -1,0 +1,17 @@
+; TAPE BOOT ROM
+
+BOOT=P00-030
+
+	ORG P01-000
+
+;	IOC C#1 026			; Read status of tape 3 [for tape3 boot]
+	LDX R#1 030			; We load at offset 030
+LOOP:
+	IOC C#0 007			; Read byte
+	STA I#1 P00			; Store it in 030...
+	CPX R#1 230			; Up to P00-230
+	BRL LOOP
+;	IOC C#1 026			; Read status (stop reading) [for tape3 boot]
+	IOC C#0 016			; Read status (stop reading)
+	IOC C#0 005			; Stop tape
+	BRU BOOT			; and we boot

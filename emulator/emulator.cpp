@@ -9,12 +9,14 @@
 #include <bit>
 #include <bitset>
 #include <iomanip>
+#include <iostream>
 
 #include "addrs.hpp"
 #include "iw.hpp"
 #include "disassembler.hpp"
 #include "memory.hpp"
 #include "cpu.hpp"
+#include "assembler.hpp"
 
 
 void load_bootstrap(memory_t &memory)
@@ -141,13 +143,6 @@ public:
     io_t &io() { return io_; }
     memory_t &memory() { return memory_; }
     crt_t::screen_buffer_t &screen() { return screen_; }
-
-    void step()
-    {
-        cpu_.step();
-        io_.crt().render(screen_);
-        display(screen_);
-    }
 };
 
 #include "imgui.h"
@@ -307,7 +302,7 @@ void render_screen( const crt_t::screen_buffer_t &screen)
 
 void render_internals( emulator_t &emu )
 {
-    auto cpu = emu.cpu();
+    auto &cpu = emu.cpu();
 
     ImGui::Begin("CPU State");
 
@@ -329,7 +324,7 @@ void render_internals( emulator_t &emu )
         ImGui::SameLine();
         ImGui::Text("IW: %s", iw.as_octal().c_str());
         static disassembler_t disassembler;
-        ImGui::Text(disassembler.disassemble(iw).c_str());
+        ImGui::Text("%s", disassembler.disassemble(iw).c_str());
 
         ImGui::Separator();
         ImGui::Text("   SP: %d", cpu.sp());
@@ -389,7 +384,7 @@ void render_internals( emulator_t &emu )
             {
                 ImGui::Text( "Loaded at ");
                 ImGui::SameLine();
-                ImGui::Text(tape_reader.tape_location().as_string().c_str());
+                ImGui::Text("%s",tape_reader.tape_location().as_string().c_str());
 
                 switch (tape_reader.mode())
                 {
@@ -444,18 +439,13 @@ void render_emulator(emulator_t &emu)
 {
     sIaw = emu.cpu().iaw();
 
-    ImGui::Begin("ICL 1501");
-    if (ImGui::Button("Step"))
-        emu.step();
-    ImGui::End();
-
     render_internals( emu );
     render_screen( emu.screen() );
     if (show_data)
         render_memory( emu.memory(), sAddrs );
 }
 
-void test_imgui()
+void run_emulator()
 {
     emulator_t emu;
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0) {
@@ -520,30 +510,168 @@ void test_imgui()
     SDL_Quit();
 }
 
-int main(int argc, char **argv)
+void assemble(const std::string &source_file, const std::string &output_file = "")
 {
-    std::string adrs = "P00-030";
-    std::string data = "201-030 170-007 231-002 341-230 111-003 170-016 170-005 100-030";
-
-    if (argc == 2)
+    std::ifstream source(source_file);
+    if (!source)
     {
-        data = argv[1];
-    }
-    if (argc == 3)
-    {
-        adrs = argv[1];
-        data = argv[2];
+        throw std::runtime_error("Failed to open source file: " + source_file);
     }
 
-    test_addrs_t();
-    test_memory_t();
-    test_iw_t();
-    test_disassemble_memory(adrs, data);
-    // icl1501::iw_t::test();
+    std::ostream *out;
+    std::ofstream output;
+    if (output_file.empty()) {
+        out = &std::cout;
+    } else {
+        output.open(output_file, std::ios::binary);
+        if (!output)
+            throw std::runtime_error("Failed to open output file: " + output_file);
+        out = &output;
+    }
+
+    iw_t iw{0,0};
+    assembler_t assembler;
+    int source_line = 0;
+
+    std::string line;
+    while (std::getline(source, line))
+    {
+        source_line++;
+        try
+        {
+            if (assembler.assemble(line,iw))
+            {
+                *out << iw.as_octal() << " ";
+            }
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Error assembling line at " << source_line << ": " << e.what() << std::endl;
+            std::cerr << "  " << line << std::endl;
+        }
+    }
+    std::cout << std::endl;
+}
+
+void disassemble(const std::string &source_file, const std::string &output_file = "", const std::string &start_address = "P00-000")
+{
+    std::ifstream source(source_file);
+    if (!source)
+    {
+        throw std::runtime_error("Failed to open source file: " + source_file);
+    }
+    std::ostream *out;
+    std::ofstream output;
+    if (output_file.empty()) {
+        out = &std::cout;
+    } else {
+        output.open(output_file);
+        if (!output)
+            throw std::runtime_error("Failed to open output file: " + output_file);
+        out = &output;
+    }
+
+    disassembler_t disassembler;
+    addrs_t current_address(start_address);
+    std::string line;
+    std::string word;
+    while (source >> word)
+    {
+        line = word;
+        try
+        {
+            iw_t iw = iw_t::from_octal(line);
+            *out << current_address.as_string() << ": " << iw.as_octal() << "      " << disassembler.disassemble(iw) << std::endl;
+            current_address = current_address.next_instruction();
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Error disassembling line at " << current_address.as_string() << ": " << e.what() << std::endl;
+        }
+    }
+}
+
+void test_assembler1( iw_t iw )
+{
+    iw_t iw2{0,0};
+
+    disassembler_t disassembler;
+    auto str = " "s+disassembler.disassemble(iw);
+    // std::cout << "(" << str << " ) " << std::flush;
+    assembler_t assembler;
+    if (!assembler.assemble(str, iw2))
+    {
+        std::cout << str << " does not assemble " << std::endl;
+            throw std::runtime_error("Assembler round trip failed");
+    }
+    else
+        if (iw!= iw2)
+        {
+            std::cout << str << " does not assemble to " << iw.as_octal() << " but to " << iw2.as_octal() << std::endl;
+            throw std::runtime_error("Assembler round trip failed");
+        }
+}
+
+void test_assembler()
+{
+    iw_t iw{0201,0030};
+    for (int i=0;i!=65536;i++)
+    {
+        iw.set_word(i);
+        // std::cout << iw.as_octal() << " " << std::flush;
+        test_assembler1(iw);
+    }
+}
+
+void run_tests()
+{
+    // std::string adrs = "P00-030";
+    // std::string data = "201-030 170-007 231-002 341-230 111-003 170-016 170-005 100-030";
+
+    // test_addrs_t();
+    // test_memory_t();
+    // test_iw_t();
+    // test_disassemble_memory(adrs, data);
 
     // test_cpu_t();
 
-    test_imgui();
+    test_assembler();
+}
 
+
+int main(int argc, char **argv)
+{
+    if (argc >= 2) {
+        std::string mode = argv[1];
+        if (mode == "-d" && argc >= 3) {
+            std::string infile = argv[2];
+            std::string outfile = (argc >= 4 && argv[3][0] != '-') ? argv[3] : "";
+            std::string start_address = "P00-000";
+            for (int i = 3; i < argc; ++i) {
+                if (std::string(argv[i]) == "-a" && i + 1 < argc) {
+                    start_address = argv[i + 1];
+                }
+            }
+            disassemble(infile, outfile, start_address);
+            return 0;
+        } else if (mode == "-a" && argc >= 3) {
+            if (argc == 4)
+                assemble(argv[2], argv[3]);
+            else
+                assemble(argv[2]);
+            return 0;
+        } else if (mode == "-t") {
+            run_tests();
+            return 0;
+        } else {
+            std::cerr << "Usage:\n";
+            std::cerr << "  " << argv[0] << "            # run emulator\n";
+            std::cerr << "  " << argv[0] << " -d infile [outfile] [-a address]  # disassemble\n";
+            std::cerr << "  " << argv[0] << " -a infile [outfile]  # assemble\n";
+            std::cerr << "  " << argv[0] << " -t  # run tests\n";
+            return 1;
+        }
+    }
+    run_emulator();
     return 0;
 }

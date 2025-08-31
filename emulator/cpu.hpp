@@ -79,6 +79,7 @@ public:
 
     void reset()
     {
+        std::cout << "CPU Reset" << std::endl;
         sp_ = 0;
         set_iaw(addrs_t(1, 0));
         compare_ = kEqual;
@@ -150,7 +151,7 @@ public:
         bool result = false; // We move to next instruction by default
 
         // Decode the instruction and execute it
-        auto instr_type = iw_t::instr_map()[iw.as_word()];
+        auto instr_type = iw_t::types()[iw_t::instr_map()[iw.as_word()]].instr;
 
         switch (instr_type)
         {
