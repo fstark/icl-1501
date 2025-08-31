@@ -4,14 +4,18 @@ This describes the RAM board found in a Singer 1501 reworked by ICL (replaced CP
 RAM datecodes indicate late 1980.
 
 Top markings:
-* ICL
-* 1501-1505 MEM BD
-* 005-9019040-03
-* 222113-3 (sticker)
+```
+ICL
+1501-1505 MEM BD
+005-9019040-03
+222113-3 (sticker)
+```
 
 Bottom:
-* 040-9019341-02
-* 0681
+```
+040-9019341-02
+0681
+```
 
 It's a 2 layer PCB
 
