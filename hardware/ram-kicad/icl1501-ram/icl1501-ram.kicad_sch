@@ -1,0 +1,93 @@
+(kicad_sch
+	(version 20231120)
+	(generator "eeschema")
+	(generator_version "8.0")
+	(uuid "919822c1-69ee-4073-970b-e77ceb37ff65")
+	(paper "A4")
+	(title_block
+		(title "1501 RAM Board")
+		(company "ICL")
+	)
+	(lib_symbols)
+	(sheet
+		(at 74.93 20.32)
+		(size 41.91 26.67)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "10396d9e-e5aa-45f1-88eb-8cb15015cfea")
+		(property "Sheetname" "Bus"
+			(at 74.93 19.6084 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "bus.kicad_sch"
+			(at 74.93 47.5746 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "icl1501-ram"
+				(path "/919822c1-69ee-4073-970b-e77ceb37ff65"
+					(page "2")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 25.4 20.32)
+		(size 39.37 26.67)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "577ddc8a-1705-46ad-afbd-59b72dffc32c")
+		(property "Sheetname" "Power"
+			(at 25.4 19.6084 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "power.kicad_sch"
+			(at 25.4 47.5746 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "icl1501-ram"
+				(path "/919822c1-69ee-4073-970b-e77ceb37ff65"
+					(page "3")
+				)
+			)
+		)
+	)
+	(sheet_instances
+		(path "/"
+			(page "1")
+		)
+	)
+)
