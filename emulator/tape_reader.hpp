@@ -6,6 +6,8 @@
 
 #include "tape.hpp"
 
+#include "tape_location.hpp"
+
 /*
     Info:
     tape can move at 10 ips or 40 ips
@@ -24,17 +26,35 @@
 
     Need transfer‑byte every 512 µs
         or underrun error?
-*/
 
+
+    Need to redo this with the following in mind
+*/
 /**
  * This represent a physical tape reader/writer
  */
 class tape_reader_t
 {
+    public:
+    typedef enum
+    {
+        kForwardErase,
+        kForward,
+        kForwardHighSpeed,
+        kReverse,
+        kStop,
+        kRewind
+    } eTapeMode;
+
+protected:
     size_t position_;
     tape_t *tape_;
+    tape_location_t tape_location_;
+
+    eTapeMode mode_ = kStop;
 
 public:
+
     tape_reader_t(tape_t *tape)
         : position_(0), tape_(tape)
     {
@@ -43,6 +63,26 @@ public:
             std::cout << "Mounted tape:\n";
             tape->dump();
         }
+    }
+
+    bool has_tape() const
+    {
+        return !!tape_;
+    }
+
+    tape_location_t tape_location() const
+    {
+        return tape_location_;
+    }
+
+    eTapeMode mode() const
+    {
+        return mode_;
+    }
+
+    void set_mode( eTapeMode mode )
+    {
+        mode_ = mode;
     }
 
     bool has_next() const

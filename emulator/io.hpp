@@ -26,11 +26,28 @@ public:
         return accumulator_;
     }
 
+    static const int kTapeForwardWithErase = 0000;
     static const int kTapeTransferByteBlocking = 0007;
 
     const crt_t &crt() const
     {
         return crt_;
+    }
+
+    int tape_count() const
+    {
+        return sizeof(tape_readers_) / sizeof(tape_readers_[0]);
+    }
+
+    const tape_reader_t &tape_reader(int index) const
+    {
+        assert(index >= 0 && index < 2);
+        return tape_readers_[index];
+    }
+
+    int tape_index() const
+    {
+        return tape_index_;
     }
 
     // Instuction is assumed to be an IOC
@@ -45,16 +62,26 @@ public:
         case 2:
             tape_index_ = channel - 1; // fallthrough to read from the tape
         case 0:
-            // tape_readers_[tape_index_].execute(function_code);
-            switch (function_code)
+        {
+            auto &tape_reader = tape_readers_[tape_index_];
+                // tape_readers_[tape_index_].execute(function_code);
+                switch (function_code)
             {
+            case kTapeForwardWithErase:
+                tape_reader.set_mode( tape_reader_t::kForwardErase );
+                break;
             case kTapeTransferByteBlocking:
-                accumulator_ = tape_readers_[tape_index_].next();
+            // NO IDEA IF THIS IS THE PROPER THING TO DO
+            // I DON"T UNDERSTAND YET WHAT STARTS THE BOOT TAPE
+                if (tape_reader.mode()==tape_reader_t::kStop)
+                    tape_reader.set_mode(tape_reader_t::kForward);
+                accumulator_ = tape_reader.next();
                 break;
             default:
                 throw std::runtime_error("Unimplemented tape function code: " + std::to_string(function_code));
             }
             break;
+        }
         case 4:
             crt_.execute(function_code);
             break;

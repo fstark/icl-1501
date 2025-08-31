@@ -16,6 +16,7 @@
 #include "memory.hpp"
 #include "cpu.hpp"
 
+
 void load_bootstrap(memory_t &memory)
 {
     // Load the bootstrap code into memory starting at P01-000
@@ -157,63 +158,109 @@ public:
 
 #include <format>
 
-addrs_t sAdrs("P00-000");
+bool show_data = false;
 
-void render_memory( const memory_t &memory, const addrs_t &addrs )
-{
-    ImGui::Begin( "Octal Dump" );
-    ImGui::Text("%s", std::format("Section: {}, Level: {}", addrs.section(), addrs.level()).c_str());
-    addrs_t a = addrs;
-    for (int l=0;l!=16;l++)
-    {
-        ImGui::Text("%s : ", a.as_string().c_str());
-        for (int c=0;c!=16;c++)
-        {
-            ImGui::SameLine();
-            ImGui::Text("%s", to_octal(memory[a]).c_str());
-            a = a + 1;
-        }
-    }
-    if (ImGui::Button("Prev"))
-    {
-        sAdrs = sAdrs +(-256);
-    }
-    ImGui::SameLine();
-    if (ImGui::Button("Next"))
-    {
-        sAdrs = sAdrs + 256;
-    }
-    ImGui::End();
-} 
+addrs_t sAddrs("P00-000");
+addrs_t sIaw("P00-000");
 
-void render_disassemly( const memory_t &memory, const addrs_t &addrs, const addrs_t &iaw )
+void render_addrs(addrs_t addrs)
 {
-    disassembler_t disassembler;
-    ImGui::Begin( "Disassembly" );
-    ImGui::Text("%s", std::format("Section: {}, Level: {}", addrs.section(), addrs.level()).c_str());
-    addrs_t a = addrs;
-    for (int l=0;l!=16;l++)
-    {
-        if (a==iaw)
-            ImGui::Text("->");
-        else
-            ImGui::Text("  ");
-        ImGui::SameLine();
-        ImGui::Text("%s : ", a.as_string().c_str());
-        iw_t w = memory.get_instruction(a);
-        ImGui::SameLine();
-        ImGui::Text("%s      %s", w.as_octal().c_str(), disassembler.disassemble(w).c_str());
-        a = a.next_instruction();
-    }
-    ImGui::End();
+    std::string label = addrs.as_string();
+    ImGui::Text("%s", label.c_str());
 }
 
-void render_crt( const crt_t &crt )
+void render_addrs(const char *label, addrs_t addrs)
 {
-    ImGui::Begin( "CRT" );
-    ImGui::Text( "  Screen: %s", crt.screen().as_string().c_str() );
-    ImGui::Text( "    Font: %s", crt.font().as_string().c_str() );
-    ImGui::Text( "Alt Font: %s", crt.alt_font().as_string().c_str() );
+    ImGui::Text("%s", label);
+    ImGui::SameLine();
+    render_addrs(addrs);
+}
+
+const int kID_PC = 0;
+const int kID_SP = 1;
+const int kID_CRT = 2;
+const int kID_FONT = 3;
+const int kID_ALT_FONT = 4;
+
+const int kID_SP_BASE = 1000;
+
+void render_active_addrs(addrs_t addrs, int id)
+{
+    std::string label = addrs.as_string();
+    ImGui::PushID(id);
+    if (ImGui::Button(label.c_str()))
+    {
+        show_data = true;
+        sAddrs = addrs;
+    }
+    ImGui::PopID();
+}
+
+void render_active_addrs(const char *label, addrs_t addrs, int id)
+{
+    ImGui::Text("%s", label);
+    ImGui::SameLine();
+    render_active_addrs(addrs,id);
+}
+
+void render_memory(const memory_t &memory, const addrs_t &addrs)
+{
+    ImGui::Begin("Memory", &show_data);
+
+    if (ImGui::BeginTabBar("MyTabBar"))
+    {
+        if (ImGui::BeginTabItem("Explore"))
+        {
+            ImGui::Text("%s", std::format("Section: {}, Level: {}", addrs.section(), addrs.level()).c_str());
+            addrs_t a = addrs;
+            for (int l = 0; l != 16; l++)
+            {
+                render_addrs(a);
+                ImGui::SameLine();
+                ImGui::Text(": ");
+                for (int c = 0; c != 16; c++)
+                {
+                    ImGui::SameLine();
+                    ImGui::Text("%s", to_octal(memory[a]).c_str());
+                    a = a + 1;
+                }
+            }
+            if (ImGui::Button("Prev"))
+            {
+                sAddrs = sAddrs + (-256);
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Next"))
+            {
+                sAddrs = sAddrs + 256;
+            }
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem("Disassembly"))
+        {
+            disassembler_t disassembler;
+            ImGui::Text("%s", std::format("Section: {}, Level: {}", addrs.section(), addrs.level()).c_str());
+            addrs_t a = addrs;
+            for (int l = 0; l != 16; l++)
+            {
+                if (a == sIaw)
+                    ImGui::Text("->");
+                else
+                    ImGui::Text("  ");
+                ImGui::SameLine();
+                render_addrs(a);
+                ImGui::SameLine();
+                ImGui::Text(": ");
+                iw_t w = memory.get_instruction(a);
+                ImGui::SameLine();
+                ImGui::Text("%s      %s", w.as_octal().c_str(), disassembler.disassemble(w).c_str());
+                a = a.next_instruction();
+            }
+            ImGui::EndTabItem();
+        }
+
+        ImGui::EndTabBar();
+    }
     ImGui::End();
 }
 
@@ -258,44 +305,11 @@ void render_screen( const crt_t::screen_buffer_t &screen)
     ImGui::End();
 }
 
-void render_cpu( cpu_t &cpu )
+void render_internals( emulator_t &emu )
 {
+    auto cpu = emu.cpu();
+
     ImGui::Begin("CPU State");
-    auto pc = cpu.iaw();
-    auto iw = cpu.memory().get_instruction(pc);
-    ImGui::Text("PC: %s", pc.as_string().c_str());
-    ImGui::SameLine();
-    ImGui::Text("IW: %s", iw.as_octal().c_str());
-    static disassembler_t disassembler;
-    ImGui::Text("Disasm: %s", disassembler.disassemble(iw).c_str());
-
-    ImGui::Separator();
-    ImGui::Text("SP: %d", cpu.sp());
-    ImGui::Text("Stack:");
-    for (int i = 0; i < 8; ++i) {
-        std::string label = (i == cpu.sp() ? "*" : " ");
-        label += cpu.sp_base(i).as_string();
-        ImGui::Text("%s", label.c_str());
-        label = cpu.memory().get_addrs(cpu.sp_base(i)).as_string();
-        ImGui::SameLine(80);
-        ImGui::Text("%s", label.c_str());
-    }
-
-    ImGui::Separator();
-    static const char *compare_str[] = {"L", "E", "H"};
-    ImGui::Text("ACC: %s", to_octal(cpu.io().accumulator()).c_str());
-    ImGui::SameLine();
-    ImGui::Text("Compare: %s", compare_str[cpu.compare_]);
-
-    ImGui::Text("Index Registers:");
-    for (int i = 1; i <= 8; ++i)
-    {
-       ImGui::BeginGroup();
-       ImGui::Text("R#%d", i );
-       ImGui::Text("%s", to_octal(cpu.index_register(i)).c_str());
-       ImGui::EndGroup();
-       if (i < 8) ImGui::SameLine();
-    }
 
     if (ImGui::Button("Reset"))
     {
@@ -306,21 +320,139 @@ void render_cpu( cpu_t &cpu )
     {
         cpu.step();
     }
-    ImGui::End();
+
+    if (ImGui::CollapsingHeader("CPU"))
+    {
+        auto pc = cpu.iaw();
+        auto iw = cpu.memory().get_instruction(pc);
+        render_active_addrs("PC: ", pc, kID_PC);
+        ImGui::SameLine();
+        ImGui::Text("IW: %s", iw.as_octal().c_str());
+        static disassembler_t disassembler;
+        ImGui::Text(disassembler.disassemble(iw).c_str());
+
+        ImGui::Separator();
+        ImGui::Text("   SP: %d", cpu.sp());
+        ImGui::Text("Stack:");
+        for (int i = 0; i < 8; ++i) {
+            if (i == cpu.sp())
+                ImGui::Text( "*" );
+            else
+                ImGui::Text( " " );
+            ImGui::SameLine();
+            render_active_addrs(cpu.sp_base(i), kID_SP + 1 + i*2);
+            ImGui::SameLine(80);
+            render_active_addrs(cpu.memory().get_addrs(cpu.sp_base(i)), kID_SP + 1 + i*2 + 1);
+        }
+
+        ImGui::Separator();
+        static const char *compare_str[] = {"L", "E", "H"};
+        ImGui::Text("ACC: %s", to_octal(cpu.io().accumulator()).c_str());
+        ImGui::SameLine();
+        ImGui::Text("Compare: %s", compare_str[cpu.compare_]);
+
+        ImGui::Text("Index Registers:");
+        for (int i = 1; i <= 8; ++i)
+        {
+        ImGui::BeginGroup();
+        ImGui::Text("R#%d", i );
+        ImGui::Text("%s", to_octal(cpu.index_register(i)).c_str());
+        ImGui::EndGroup();
+        if (i < 8) ImGui::SameLine();
+        }
+    }
+
+    if (ImGui::CollapsingHeader("CRT"))
+    {
+        auto crt = emu.io().crt();
+
+        render_active_addrs("  Screen: ", crt.screen(), kID_CRT);
+        render_active_addrs("    Font: ", crt.font(), kID_FONT);
+        render_active_addrs("Alt Font: ", crt.alt_font(), kID_ALT_FONT);
+    }
+
+    if (ImGui::CollapsingHeader("Tapes"))
+    {
+        auto io = emu.io();
+
+        for (int i=0;i!=io.tape_count();i++)
+        {
+            auto &tape_reader = io.tape_reader(i);
+            if (i == io.tape_index())
+                ImGui::Text("->");
+            else
+                ImGui::Text("  ");
+            ImGui::SameLine();
+            ImGui::Text("Tape %d:", i + 1);
+            ImGui::SameLine();
+            if (tape_reader.has_tape())
+            {
+                ImGui::Text( "Loaded at ");
+                ImGui::SameLine();
+                ImGui::Text(tape_reader.tape_location().as_string().c_str());
+
+                switch (tape_reader.mode())
+                {
+                    case tape_reader_t::eTapeMode::kForwardErase:
+                        ImGui::Text( "FORWARD ERASE" );
+                        break;
+                    case tape_reader_t::eTapeMode::kForward:
+                        ImGui::Text("FORWARD");
+                        break;
+                    case tape_reader_t::eTapeMode::kForwardHighSpeed:
+                        ImGui::Text("FORWARD HIGH SPEED");
+                        break;
+                    case tape_reader_t::eTapeMode::kReverse:
+                        ImGui::Text("REVERSE");
+                        break;
+                    case tape_reader_t::eTapeMode::kStop:
+                        ImGui::Text("STOPPED");
+                        break;
+                    case tape_reader_t::eTapeMode::kRewind:
+                        ImGui::Text("REWIND");
+                        break;
+                        ;
+                }
+                if (ImGui::Button(std::format("Eject##{}", i).c_str()))
+                {
+                    // tape.eject();
+                }
+                ImGui::SameLine();
+                if (ImGui::Button(std::format("Rewind##{}", i).c_str()))
+                {
+                    // tape.load( ... );
+                }
+            }
+            else
+            {
+                ImGui::Text("Unloaded");
+                if (ImGui::Button("Load"))
+                {
+                    std::cout << "TODO LOAD TAPE" << std::endl;
+                }
+            }
+
+            // ImGui::Text("  Position: %d", tape.position());
+            // ImGui::Text("  Next byte: %s", to_octal(tape.next()).c_str());
+        }
+    }
+
+ImGui::End();
 }
 
 void render_emulator(emulator_t &emu)
 {
+    sIaw = emu.cpu().iaw();
+
     ImGui::Begin("ICL 1501");
     if (ImGui::Button("Step"))
         emu.step();
     ImGui::End();
 
-    render_cpu( emu.cpu() );
-    render_crt( emu.io().crt() );
+    render_internals( emu );
     render_screen( emu.screen() );
-    render_memory( emu.memory(), sAdrs );
-    render_disassemly( emu.memory(), "P01-000", emu.cpu().iaw() );
+    if (show_data)
+        render_memory( emu.memory(), sAddrs );
 }
 
 void test_imgui()
@@ -330,10 +462,16 @@ void test_imgui()
         std::cerr << "Failed to initialize SDL2: " << SDL_GetError() << std::endl;
         return;
     }
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
+
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+
+    // SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
+    // SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    // SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    // SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
@@ -347,7 +485,9 @@ void test_imgui()
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     ImGui::StyleColorsDark();
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
-    ImGui_ImplOpenGL3_Init("#version 130");
+
+    ImGui_ImplOpenGL3_Init("#version 150"); // <- macOS + GL 3.2 core expects 150
+    // ImGui_ImplOpenGL3_Init("#version 130");
 
     bool done = false;
     while (!done) {
