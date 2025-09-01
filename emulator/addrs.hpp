@@ -72,7 +72,7 @@ public:
 
     uint8_t level() const
     {
-        return b0 & 0x03; // Extract bits 0-1 from b0
+        return b0 & 0x07; // Extract bits 0-2 from b0
     }
 
     uint8_t page() const
