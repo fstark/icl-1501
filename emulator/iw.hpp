@@ -441,8 +441,7 @@ public:
     static const int kDECODE_BLITERAL = 0x4000;
     static const int kDECODE_SHIFT = 0x8000;
 
-    static const std::vector<instruction_def>
-    types()
+    static const std::vector<instruction_def> &types()
     {
         static const std::vector<instruction_def> types = {
             instruction_def{kUnknown, "DBO", 0b00000000'00000000, 0b00000000'00000000, kDECODE_DBO},
