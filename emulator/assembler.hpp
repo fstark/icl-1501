@@ -122,6 +122,16 @@ class assembler_t
 			int mask = 1<<mask_bit;
 			if (id.decode&mask)
 			{
+				if (mask==iw_t::kDECODE_DBO)
+				{
+					iw = iw_t::from_octal( op1 );
+				}
+				if (mask==iw_t::kDECODE_JUMP)
+				{
+					int jump_count = std::stoi(op1);
+					// std::cout << "JC=" << jump_count << std::endl;
+					iw.set_signed_jump_count( jump_count );
+				}
 				if (mask==iw_t::kDECODE_INDEX_REGISTER)
 				{
 					int reg = parse_op1(op1,'R');

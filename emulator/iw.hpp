@@ -97,15 +97,36 @@ public:
         return iwl_ & 0b00011110;
     }
 
+    void set_jump_count(uint8_t count)
+    {
+        assert( (count%2)==0 );
+        assert(count < 32);
+        iwl_ = (iwl_ & 0b11100001) | (count & 0b00011110);
+    }
+
     bool direction() const
     {
-        return (iwl_ & 01) != 0;
+        return (iwl_ & 1) != 0;
+    }
+
+    void set_direction(bool dir)
+    {
+        if (dir)
+            iwl_ |= 1;
+        else
+            iwl_ &= ~1;
     }
 
     int signed_jump_count() const
     {
         int count = jump_count();
-        return direction() ? count : -count;
+        return direction() ? -count : count;
+    }
+
+    void set_signed_jump_count( int count )
+    {
+        set_direction( count<0 );
+        set_jump_count( abs(count) );
     }
 
     uint8_t literal() const
@@ -408,6 +429,7 @@ public:
     static const int kDECODE_INDEX_REGISTER = 0x04;
     static const int kDECODE_IOC = 0x08;
     static const int kDECODE_IOC_CHANNEL = 0x10;
+    static const int kDECODE_DBO = 0x20;
     static const int kDECODE_INDEX_REGISTER_OP = 0x40;
     static const int kDECODE_PAGE_NUMBER = 0x80;
     static const int kDECODE_ADRS_LEVEL_BYTE = 0x100;
@@ -423,8 +445,9 @@ public:
     types()
     {
         static const std::vector<instruction_def> types = {
-            instruction_def{kUnknown, "???", 0b00000000'00000000, 0b00000000'00000000, kDECODE_NONE},
-            // instruction_def{kUnknown, "???", 0b00000000'00000000, 0b11111111'00000000, kDECODE_NONE},
+            instruction_def{kUnknown, "DBO", 0b00000000'00000000, 0b00000000'00000000, kDECODE_DBO},
+            instruction_def{kUnknown, "DBO", 0b00000000'00000000, 0b11111111'00000000, kDECODE_DBO},
+            instruction_def{kUnknown, "DBO", 0b00000001'00000000, 0b11111111'00000000, kDECODE_DBO},
             instruction_def{kTLJ, "TLJ", 0b00000000'00000000, 0b11100000'00000000, kDECODE_JUMP | kDECODE_OLITERAL},
             instruction_def{kTMJ, "TMJ", 0b00100000'00000000, 0b11100000'00000000, kDECODE_JUMP | kDECODE_MASK},
             instruction_def{kTLX, "TLX", 0b00000000'00000000, 0b11111111'00000000, kDECODE_OLITERAL},
@@ -485,7 +508,7 @@ public:
         return types;
     }
 
-    static const eInstructionType *instr_map()
+    static const size_t *instr_map()
     {
         // for (size_t i=0;i!=types().size();i++)
         // {
@@ -493,15 +516,16 @@ public:
         // }
 
 
-        static eInstructionType instr_map[65536] = {kUnknown};
+        static size_t instr_map[65536] = {kUnknown};
 
         static bool initialized = false;
         if (!initialized)
         { // We fill from least specific match (least bits) to most specific
             for (int bits = 0; bits != 17; bits++)
             {
-                for (auto &type : iw_t::types())
+                for (size_t index=0;index!=types().size();index++)
                 {
+                    auto &type = iw_t::types()[index];
                     if (std::popcount(type.mask) != bits)
                         continue;
                     // std::cout << type.mnemonic << " ("
@@ -512,11 +536,11 @@ public:
                         iw_t instr(i >> 8, i & 0xff);
                         if (instr.compare(type.value >> 8, type.mask >> 8, type.value & 0xff, type.mask & 0xff))
                         {
-                            if (i==0)
+                            if (i==256)
                             {
-                                std::cout << "Mapping " << type.mnemonic << " to " << std::bitset<16>(i) << std::endl;
+                                std::cout << "Mapping " << type.mnemonic << " to " << std::bitset<16>(i) << " " << bits << " bits" << std::endl;
                             }
-                            instr_map[i] = type.instr;
+                            instr_map[i] = index;
                         }
                     }
                 }

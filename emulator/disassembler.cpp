@@ -17,6 +17,10 @@ const std::string disassembler_t::disassemble(const iw_t& instruction) const
     std::string result = mnemonic(instruction);
     auto decode = iw_t::types()[(int)iw_t::instr_map()[instruction.as_word()]].decode;
 
+    if (decode & iw_t::kDECODE_DBO)
+    {
+        result += " " + instruction.as_octal();
+    }
     if (decode & iw_t::kDECODE_SHIFT)
     {
         result += " " + std::to_string(instruction.shift_count());
