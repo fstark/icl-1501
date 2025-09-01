@@ -89,7 +89,7 @@ const std::string disassembler_t::disassemble(const iw_t& instruction) const
 
     if (decode & iw_t::kDECODE_UV)
     {
-        result += " " + std::string(instruction.set_u() ? "+U" : "-U") + std::string(instruction.set_v() ? "+V" : "-V");
+        result += " " + std::string(instruction.u() ? "+U" : "-U") + std::string(instruction.v() ? "+V" : "-V");
     }
 
     if (decode & iw_t::kDECODE_ADRS_BYTE)

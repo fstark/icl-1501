@@ -122,6 +122,28 @@ class assembler_t
 		return true;
 	}
 
+	// parse +U -U +V -V
+	void parse_uv( const std::string & op, bool &u, bool &v )
+	{
+		u = false;
+		v = false;
+		// check size = 4
+		if (op.size()!=4)
+			throw std::runtime_error("Invalid U/V specifier: " + op);
+		if (op[0]!='+' && op[0]!='-')
+			throw std::runtime_error("Invalid U/V specifier: " + op);
+		if (op[2]!='+' && op[2]!='-')
+			throw std::runtime_error("Invalid U/V specifier: " + op);
+		if (op[1]!='U' && op[1]!='V')
+			throw std::runtime_error("Invalid U/V specifier: " + op);
+		if (op[3]!='U' && op[3]!='V')
+			throw std::runtime_error("Invalid U/V specifier: " + op);
+		if (op[1]==op[3])
+			throw std::runtime_error("Invalid U/V specifier: " + op);
+		u = (op[0]=='+');
+		v = (op[2]=='+');
+	}
+
 	bool assemble( const iw_t::instruction_def &id, const std::string & op1, const std::string & op2, iw_t &iw )
 	{
 
@@ -180,6 +202,16 @@ class assembler_t
 					uint8_t section = parse_op1(op1,'S');
 					iw.set_section1(section);
 				}
+			    if (mask==iw_t::kDECODE_UV)
+			    {
+					bool u,v;
+					std::string uv = op2;
+					if (uv.empty())
+						uv = op1;
+					parse_uv( uv, u, v );
+					iw.set_u(u);
+					iw.set_v(v);
+			    }
 				if (mask==iw_t::kDECODE_OLITERAL)	
 				{
 						// TLX 000 => op1

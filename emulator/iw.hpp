@@ -198,14 +198,30 @@ public:
         return iwl_ & 0b00000111;
     }
 
-    bool set_v() const
+    bool v() const
     {
         return (iwr_ & 0b01000000) != 0;
     }
 
-    bool set_u() const
+    void set_v(bool v)
+    {
+        if (v)
+            iwr_ |= 0b01000000;
+        else
+            iwr_ &= ~0b01000000;
+    }
+
+    bool u() const
     {
         return (iwr_ & 0b10000000) != 0;
+    }
+
+    void set_u(bool u)
+    {
+        if (u)
+            iwr_ |= 0b10000000;
+        else
+            iwr_ &= ~0b10000000;
     }
 
     bool compare(uint8_t value1, uint8_t mask1, u_int8_t value2, u_int8_t mask2) const
