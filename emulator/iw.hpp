@@ -159,9 +159,21 @@ public:
         return (iwr_ & 0b00111000) >> 3;
     }
 
+    void set_section1(uint8_t section)
+    {
+        assert(section < 8);
+        iwr_ = (iwr_ & 0b11000111) | ((section & 0b00000111) << 3);
+    }
+
     uint8_t section2() const
     {
         return (iwr_ & 0b11100000) >> 5;
+    }
+
+    void set_section2(uint8_t section)
+    {
+        assert(section < 8);
+        iwr_ = (iwr_ & 0b00011111) | ((section & 0b00000111) << 5);
     }
 
     uint8_t level() const

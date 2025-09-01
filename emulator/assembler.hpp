@@ -175,6 +175,11 @@ class assembler_t
 					int channel = parse_op1(op1,'C');
 					iw.set_ioc_channel(channel);
 				}
+				if (mask==iw_t::kDECODE_SECTION)
+				{
+					uint8_t section = parse_op1(op1,'S');
+					iw.set_section1(section);
+				}
 				if (mask==iw_t::kDECODE_OLITERAL)	
 				{
 						// TLX 000 => op1
@@ -211,6 +216,7 @@ class assembler_t
 					if (get_addrs(op1,a) || get_symbol(op1,a))
 					{
 						iw.set_address(a);
+						std::cout << iw.as_octal() << std::endl;
 					}
 					else
 						return false;
