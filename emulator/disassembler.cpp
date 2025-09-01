@@ -94,7 +94,7 @@ const std::string disassembler_t::disassemble(const iw_t& instruction) const
 
     if (decode & iw_t::kDECODE_ADRS_BYTE)
     {
-        result += " P-" + to_octal(instruction.literal());
+        result += " " + to_octal(instruction.literal());
     }
 
     return result;
