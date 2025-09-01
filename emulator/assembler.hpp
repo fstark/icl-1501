@@ -91,9 +91,12 @@ class assembler_t
 	bool is_addrs( const std::string & op )
 	{
 		// format is Pnn-nnn where nn is octal 00-77 and nnn is octal 000-377
-		if (op.size()!=7 || op[0]!='P' || op[3]!='-' || !::is_octal(op.substr(1,2)) || !::is_octal(op.substr(4,3)))
-			return false;
-		return true;
+		if (op.size()==7 && op[0]=='P' && op[3]=='-' && ::is_octal(op.substr(1,2)) && ::is_octal(op.substr(4,3)))
+			return true;
+		// format is Pn-nnn where n is octal 0-7 and nnn is octal 000-377
+		if (op.size()==6 && op[0]=='P' && op[2]=='-' && ::is_octal(op.substr(1,1)) && ::is_octal(op.substr(3,3)))
+			return true;
+		return false;
 	}
 
 	bool get_addrs( const std::string & op, addrs_t &addr )
@@ -101,6 +104,21 @@ class assembler_t
 		if (!is_addrs(op))
 			return false;
 		addr = addrs_t(op);
+		return true;
+	}
+
+	bool parse_binary8( const std::string & op, uint8_t &value )
+	{
+		// format is 8 bits binary, e.g. 10101010
+		if (op.size()!=8)
+			return false;
+		value = 0;
+		for (char c: op)
+		{
+			if (c!='0' && c!='1')
+				return false;
+			value = (value<<1) | (c=='1' ? 1 : 0);
+		}
 		return true;
 	}
 
@@ -125,6 +143,21 @@ class assembler_t
 				if (mask==iw_t::kDECODE_DBO)
 				{
 					iw = iw_t::from_octal( op1 );
+				}
+				if (mask==iw_t::kDECODE_MASK)
+				{
+					uint8_t m;
+					if (op2.empty())
+					{
+						if (!parse_binary8(op1, m))
+							return false;
+					}
+					else
+					{
+						if (!parse_binary8(op2, m))
+							return false;
+					}
+					iw.set_literal(m);
 				}
 				if (mask==iw_t::kDECODE_JUMP)
 				{
@@ -206,7 +239,7 @@ class assembler_t
 			}
 		}
 
-		throw std::runtime_error("Can't assemble: " + mnemonic);
+		throw std::runtime_error("Can't assemble: " + mnemonic + " " + op1 + " " + op2	);
 	}
 
 	bool assemble( const std::string & line, iw_t &iw )

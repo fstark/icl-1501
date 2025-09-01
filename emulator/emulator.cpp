@@ -597,7 +597,7 @@ void test_assembler1( iw_t iw )
 
     disassembler_t disassembler;
     auto str = " "s+disassembler.disassemble(iw);
-    // std::cout << "(" << str << " ) " << std::flush;
+    std::cout << iw.as_octal() << " =>" << str << " =>" << std::flush;
     assembler_t assembler;
     if (!assembler.assemble(str, iw2))
     {
@@ -610,6 +610,7 @@ void test_assembler1( iw_t iw )
             std::cout << str << " does not assemble to " << iw.as_octal() << " but to " << iw2.as_octal() << std::endl;
             throw std::runtime_error("Assembler round trip failed");
         }
+    std::cout << iw2.as_octal() << std::endl;
 }
 
 void test_assembler()

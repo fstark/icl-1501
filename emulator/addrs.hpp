@@ -26,22 +26,28 @@ public:
     addrs_t(const char * v) : addrs_t(std::string(v)) {}
     addrs_t(const std::string &v)
     {
-        if (v.size() != 7 || v[0] != 'P' || v[3] != '-')
-        {
-            throw std::invalid_argument("Invalid address format ["s+v+"]");
-        }
-
         try
         {
-            int page = std::stoi(std::string(v.substr(1, 2)), nullptr, 8);
-            int location = std::stoi(v.substr(4, 3), nullptr, 8);
-            b0 = (page & 0x3F);
-            b1 = location & 0xFF;
+            if (v.size() == 7 && v[0] == 'P' && v[3] == '-')
+            {
+                int page = std::stoi(std::string(v.substr(1, 2)), nullptr, 8);
+                int location = std::stoi(v.substr(4, 3), nullptr, 8);
+                b0 = (page & 0x3F);
+                b1 = location & 0xFF;
+            }
+            if (v.size() == 6 && v[0] == 'P' && v[2] == '-')
+            {
+                int page = std::stoi(std::string(v.substr(1, 1)), nullptr, 8);
+                int location = std::stoi(v.substr(3, 3), nullptr, 8);
+                b0 = (page & 0x3F);
+                b1 = location & 0xFF;
+            }
+            return;
         }
-        catch (const std::exception &e)
+        catch (const std::exception &)
         {
-            throw std::invalid_argument("Invalid address format ["s+v+"]");
         }
+        throw std::invalid_argument("Invalid address format ["s + v + "]");
     }
 
     uint8_t high() const

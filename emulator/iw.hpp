@@ -134,16 +134,24 @@ public:
         return iwr_;
     }
 
+    void set_literal(uint8_t value)
+    {
+        iwr_ = value;
+    }
+
     addrs_t address() const
     {
         //  Section is always 0, level and address from instruction
-        return addrs_t(0, iwl_ & 0b0000111, iwr_ & 0b01111110);
+        // std::cout << "ADDR: " << std::bitset<8>(iwl_ & 0b0000111) << " ";
+        // addrs_t a(0, iwl_ & 0b0000111, iwr_ & 0b11111110);
+        // std::cout << a.as_string() << std::endl;
+        return addrs_t(0, iwl_ & 0b0000111, iwr_ & 0b11111110);
     }
 
     void set_address(const addrs_t &addr)
     {
         iwl_ = (iwl_ & 0b11111000) | (addr.level() & 0b00000111);
-        iwr_ = (iwr_ & 0b10000001) | (addr.location() & 0b01111110);
+        iwr_ = (iwr_ & 0b00000001) | (addr.location() & 0b11111110);
     }
 
     uint8_t section1() const
@@ -447,6 +455,7 @@ public:
             instruction_def{kUnknown, "DBO", 0b00000000'00000000, 0b00000000'00000000, kDECODE_DBO},
             instruction_def{kUnknown, "DBO", 0b00000000'00000000, 0b11111111'00000000, kDECODE_DBO},
             instruction_def{kUnknown, "DBO", 0b00000001'00000000, 0b11111111'00000000, kDECODE_DBO},
+            instruction_def{kUnknown, "DBO", 0b00100001'00000000, 0b11111111'00000000, kDECODE_DBO},
             instruction_def{kTLJ, "TLJ", 0b00000000'00000000, 0b11100000'00000000, kDECODE_JUMP | kDECODE_OLITERAL},
             instruction_def{kTMJ, "TMJ", 0b00100000'00000000, 0b11100000'00000000, kDECODE_JUMP | kDECODE_MASK},
             instruction_def{kTLX, "TLX", 0b00000000'00000000, 0b11111111'00000000, kDECODE_OLITERAL},
