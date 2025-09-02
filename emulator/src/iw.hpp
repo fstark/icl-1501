@@ -181,21 +181,33 @@ public:
         return (iwr_ & 0b00011100) >> 2;
     }
 
+    void set_level(uint8_t level)
+    {
+        assert(level < 8);
+        iwr_ = (iwr_ & 0b11100011) | ((level & 0b00000111) << 2);
+    }
+
     //  section + level in top of iwr_
     uint8_t page_number() const
     {
-        return (iwr_ & 0b11111100);
+        return (iwr_ & 0b11111100)>>2;
     }
 
     void set_page_number(uint8_t page)
     {
         assert(page < 64);
-        iwr_ = (iwr_ & 0b00000011) | (page & 0b11111100);
+        iwr_ = (iwr_ & 0b00000011) | ((page & 0b00111111) << 2 );
     }
 
     uint8_t shift_count() const
     {
         return iwl_ & 0b00000111;
+    }
+
+    void set_shift_count(uint8_t shift_count)
+    {
+        assert(shift_count < 8);
+        iwl_ = (iwl_ & 0b11111000) | (shift_count & 0b00000111);
     }
 
     bool v() const
@@ -472,7 +484,7 @@ public:
     static const int kDECODE_MASK = 0x200;
     static const int kDECODE_SECTION = 0x400;
     static const int kDECODE_UV = 0x800;
-    static const int kDECODE_ADRS_BYTE = 0x1000;
+    static const int kDECODE_ZP_ADRS = 0x1000;
     static const int kDECODE_SECTION_LEVEL = 0x2000;
     static const int kDECODE_BLITERAL = 0x4000;
     static const int kDECODE_SHIFT = 0x8000;
@@ -510,35 +522,51 @@ public:
             instruction_def{kCPI, "CPI", 0b01101110'00000010, 0b11111111'11111111, 0},
             instruction_def{kTRM, "TRM", 0b01101111'00000000, 0b11111111'11111111, 0},
             instruction_def{kLDA_Imm, "LDA", 0b10000000'00000000, 0b11111111'00000000, kDECODE_OLITERAL},
-            instruction_def{kLDA_Dir, "LDA", 0b10001000'00000000, 0b11111111'00000000, kDECODE_ADRS_BYTE},
-            instruction_def{kLDA_Ind, "LDA", 0b10001000'00000000, 0b11111000'00000000, kDECODE_INDEX_REGISTER_OP | kDECODE_SECTION_LEVEL},
+            instruction_def{kLDA_Dir, "LDA", 0b10001000'00000000, 0b11111111'00000000, kDECODE_ZP_ADRS},
+            instruction_def{kLDA_Ind, "LDA", 0b10001000'00000000, 0b11111000'00000011, kDECODE_INDEX_REGISTER_OP | kDECODE_SECTION_LEVEL},
+            instruction_def{kLDA_Ind, "LDA", 0b10001000'00000010, 0b11111000'00000011, kDECODE_INDEX_REGISTER_OP | kDECODE_SECTION_LEVEL},
+            instruction_def{kLDA_Ind, "LDA", 0b10001000'00000011, 0b11111000'00000011, kDECODE_INDEX_REGISTER_OP | kDECODE_SECTION_LEVEL},
             instruction_def{kLDX, "LDX", 0b10000000'00000000, 0b11111000'00000000, kDECODE_INDEX_REGISTER | kDECODE_OLITERAL},
             instruction_def{kLIA, "LIA", 0b10010000'00000000, 0b11111000'00000000, kDECODE_INDEX_REGISTER | kDECODE_OLITERAL},
-            instruction_def{kSTA_Dir, "STA", 0b10011000'00000000, 0b11111111'00000000, kDECODE_ADRS_BYTE},
-            instruction_def{kSTA_Ind, "STA", 0b10011000'00000000, 0b11111000'00000000, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
+            instruction_def{kSTA_Dir, "STA", 0b10011000'00000000, 0b11111111'00000000, kDECODE_ZP_ADRS},
+            instruction_def{kSTA_Ind, "STA", 0b10011000'00000000, 0b11111000'00000011, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
+            instruction_def{kSTA_Ind, "STA", 0b10011000'00000010, 0b11111000'00000011, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
+            instruction_def{kSTA_Ind, "STA", 0b10011000'00000011, 0b11111000'00000011, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
             instruction_def{kADA_Imm, "ADA", 0b10100000'00000000, 0b11111111'00000000, kDECODE_OLITERAL},
-            instruction_def{kADA_Dir, "ADA", 0b10101000'00000000, 0b11111111'00000000, kDECODE_ADRS_BYTE},
-            instruction_def{kADA_Ind, "ADA", 0b10101000'00000000, 0b11111000'00000000, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
+            instruction_def{kADA_Dir, "ADA", 0b10101000'00000000, 0b11111111'00000000, kDECODE_ZP_ADRS},
+            instruction_def{kADA_Ind, "ADA", 0b10101000'00000000, 0b11111000'00000011, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
+            instruction_def{kADA_Ind, "ADA", 0b10101000'00000010, 0b11111000'00000011, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
+            instruction_def{kADA_Ind, "ADA", 0b10101000'00000011, 0b11111000'00000011, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
             instruction_def{kADX, "ADX", 0b10100000'00000000, 0b11111000'00000000, kDECODE_INDEX_REGISTER | kDECODE_OLITERAL},
             instruction_def{kSUA_Imm, "SUA", 0b10110000'00000000, 0b11111111'00000000, kDECODE_OLITERAL},
-            instruction_def{kSUA_Dir, "SUA", 0b10111000'00000000, 0b11111111'00000000, kDECODE_ADRS_BYTE},
-            instruction_def{kSUA_Ind, "SUA", 0b10111000'00000000, 0b11111000'00000000, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
+            instruction_def{kSUA_Dir, "SUA", 0b10111000'00000000, 0b11111111'00000000, kDECODE_ZP_ADRS},
+            instruction_def{kSUA_Ind, "SUA", 0b10111000'00000000, 0b11111000'00000011, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
+            instruction_def{kSUA_Ind, "SUA", 0b10111000'00000010, 0b11111000'00000011, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
+            instruction_def{kSUA_Ind, "SUA", 0b10111000'00000011, 0b11111000'00000011, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
             instruction_def{kSUX, "SUX", 0b10110000'00000000, 0b11111000'00000000, kDECODE_INDEX_REGISTER | kDECODE_OLITERAL},
             instruction_def{kANA_Imm, "ANA", 0b11000000'00000000, 0b11111111'00000000, kDECODE_BLITERAL},
-            instruction_def{kANA_Dir, "ANA", 0b11001000'00000000, 0b11111111'00000000, kDECODE_ADRS_BYTE},
-            instruction_def{kANA_Ind, "ANA", 0b11001000'00000000, 0b11111000'00000000, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
+            instruction_def{kANA_Dir, "ANA", 0b11001000'00000000, 0b11111111'00000000, kDECODE_ZP_ADRS},
+            instruction_def{kANA_Ind, "ANA", 0b11001000'00000000, 0b11111000'00000011, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
+            instruction_def{kANA_Ind, "ANA", 0b11001000'00000010, 0b11111000'00000011, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
+            instruction_def{kANA_Ind, "ANA", 0b11001000'00000011, 0b11111000'00000011, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
             instruction_def{kSAN, "SAN", 0b11000000'00000000, 0b11111000'00000000, kDECODE_SHIFT | kDECODE_BLITERAL},
             instruction_def{kERA_Imm, "ERA", 0b11010000'00000000, 0b11111111'00000000, kDECODE_BLITERAL},
-            instruction_def{kERA_Dir, "ERA", 0b11011000'00000000, 0b11111111'00000000, kDECODE_ADRS_BYTE},
-            instruction_def{kERA_Ind, "ERA", 0b11011000'00000000, 0b11111000'00000000, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
+            instruction_def{kERA_Dir, "ERA", 0b11011000'00000000, 0b11111111'00000000, kDECODE_ZP_ADRS},
+            instruction_def{kERA_Ind, "ERA", 0b11011000'00000000, 0b11111000'00000011, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
+            instruction_def{kERA_Ind, "ERA", 0b11011000'00000010, 0b11111000'00000011, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
+            instruction_def{kERA_Ind, "ERA", 0b11011000'00000011, 0b11111000'00000011, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
             instruction_def{kSER, "SER", 0b11010000'00000000, 0b11111000'00000000, kDECODE_SHIFT | kDECODE_BLITERAL},
             instruction_def{kIRA_Imm, "IRA", 0b11110000'00000000, 0b11111111'00000000, kDECODE_BLITERAL},
-            instruction_def{kIRA_Dir, "IRA", 0b11111000'00000000, 0b11111111'00000000, kDECODE_ADRS_BYTE},
-            instruction_def{kIRA_Ind, "IRA", 0b11111000'00000000, 0b11111000'00000000, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
+            instruction_def{kIRA_Dir, "IRA", 0b11111000'00000000, 0b11111111'00000000, kDECODE_ZP_ADRS},
+            instruction_def{kIRA_Ind, "IRA", 0b11111000'00000000, 0b11111000'00000011, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
+            instruction_def{kIRA_Ind, "IRA", 0b11111000'00000010, 0b11111000'00000011, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
+            instruction_def{kIRA_Ind, "IRA", 0b11111000'00000011, 0b11111000'00000011, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
             instruction_def{kSIR, "SIR", 0b11110000'00000000, 0b11111000'00000000, kDECODE_SHIFT | kDECODE_BLITERAL},
             instruction_def{kCPA_Imm, "CPA", 0b11100000'00000000, 0b11111111'00000000, kDECODE_OLITERAL},
-            instruction_def{kCPA_Dir, "CPA", 0b11101000'00000000, 0b11111111'00000000, kDECODE_ADRS_BYTE},
-            instruction_def{kCPA_Ind, "CPA", 0b11101000'00000000, 0b11111000'00000000, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
+            instruction_def{kCPA_Dir, "CPA", 0b11101000'00000000, 0b11111111'00000000, kDECODE_ZP_ADRS},
+            instruction_def{kCPA_Ind, "CPA", 0b11101000'00000000, 0b11111000'00000011, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
+            instruction_def{kCPA_Ind, "CPA", 0b11101000'00000010, 0b11111000'00000011, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
+            instruction_def{kCPA_Ind, "CPA", 0b11101000'00000011, 0b11111000'00000011, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
             instruction_def{kCPX, "CPX", 0b11100000'00000000, 0b11111000'00000000, kDECODE_INDEX_REGISTER | kDECODE_OLITERAL},
             instruction_def{kIOC, "IOC", 0b01111000'00000000, 0b11111000'00000000, kDECODE_IOC_CHANNEL | kDECODE_OLITERAL | kDECODE_IOC}};
         return types;

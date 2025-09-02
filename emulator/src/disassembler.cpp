@@ -36,14 +36,14 @@ const std::string disassembler_t::disassemble(const iw_t& instruction) const
         result += " " + instruction.indexing_register_name();
     }
 
-    if (decode & iw_t::kDECODE_SECTION_LEVEL)
-    {
-        result += " P" + std::to_string(instruction.section2()) + std::to_string(instruction.level());
-    }
-
     if (decode & iw_t::kDECODE_INDEX_REGISTER_OP)
     {
         result += " " + iw_t::register_name(instruction.indexing_register(), instruction.indexing_mode());
+    }
+
+    if (decode & iw_t::kDECODE_SECTION_LEVEL)
+    {
+        result += " P" + std::to_string(instruction.section2()) + std::to_string(instruction.level());
     }
 
     if (decode & iw_t::kDECODE_PAGE_NUMBER)
@@ -92,9 +92,9 @@ const std::string disassembler_t::disassemble(const iw_t& instruction) const
         result += " " + std::string(instruction.u() ? "+U" : "-U") + std::string(instruction.v() ? "+V" : "-V");
     }
 
-    if (decode & iw_t::kDECODE_ADRS_BYTE)
+    if (decode & iw_t::kDECODE_ZP_ADRS)
     {
-        result += " " + to_octal(instruction.literal());
+        result += " P0-" + to_octal(instruction.literal());
     }
 
     return result;

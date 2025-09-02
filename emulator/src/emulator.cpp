@@ -597,7 +597,7 @@ void test_assembler1( iw_t iw )
 
     disassembler_t disassembler;
     auto str = " "s+disassembler.disassemble(iw);
-    std::cout << iw.as_octal() << " =>" << str << " =>" << std::flush;
+    std::cout << iw.as_octal() << " =>" << str << " => " << std::flush;
     assembler_t assembler;
     if (!assembler.assemble(str, iw2))
     {

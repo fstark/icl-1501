@@ -1,0 +1,5 @@
+; Sample instruction
+
+	LDA 000
+	LDA P0-123
+	STA R#1 P04

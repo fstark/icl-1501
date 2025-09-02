@@ -122,6 +122,15 @@ class assembler_t
 		return true;
 	}
 
+	bool parse_shift( const std::string & op, uint8_t &shift )
+	{
+		// format is n where n is 0-7
+		if (op.size()!=1 || !isdigit(op[0]) || op[0]<'0' || op[0]>'7')
+			return false;
+		shift = op[0]-'0';
+		return true;
+	}
+
 	// parse +U -U +V -V
 	void parse_uv( const std::string & op, bool &u, bool &v )
 	{
@@ -212,15 +221,44 @@ class assembler_t
 					iw.set_u(u);
 					iw.set_v(v);
 			    }
+				if (mask==iw_t::kDECODE_SHIFT)
+				{
+					uint8_t shift;
+					if (parse_shift(op1,shift))
+					{
+						iw.set_shift_count( shift );
+					}
+					else
+						return false;
+				}
 				if (mask==iw_t::kDECODE_OLITERAL)	
 				{
 						// TLX 000 => op1
 						//	LDX R#1 000 => op2
 					if (op2.empty())
+					{
+						if (!::is_octal(op1))
+							return false;
 						iw.set_iwr( ::from_octal( op1 ) );
-//						throw std::runtime_error("Literal value expected");
+					}
 					else
+					{
+						if (!::is_octal(op2))
+							return false;
 						iw.set_iwr( ::from_octal( op2 ) );
+					}
+				}
+				if (mask==iw_t::kDECODE_BLITERAL)
+				{
+					uint8_t b;
+					if (!op2.empty())
+					{
+						if (!parse_binary8(op2,b))
+							return false;
+					}
+					else if (!parse_binary8(op1,b))
+						return false;
+					iw.set_iwr(b);
 				}
 				if (mask==iw_t::kDECODE_INDEX_REGISTER_OP)
 				{
@@ -229,12 +267,14 @@ class assembler_t
 					iw.set_indexing_register(reg);
 					iw.set_indexing_mode(mode);
 				}
-				if (mask==iw_t::kDECODE_ADRS_BYTE)
+				if (mask==iw_t::kDECODE_ZP_ADRS)
 				{
-					if (!::is_octal(op1))
+					addrs_t a{0,0};
+					if (!get_addrs(op1,a))
 						return false;
-					uint8_t addr_byte = ::from_octal(op1);
-					iw.set_iwr( addr_byte );
+					if (a.page()!=0)
+						return false;		//	Should be page 0
+					iw.set_iwr( a.location() );
 				}
 				if (mask==iw_t::kDECODE_PAGE_NUMBER)
 				{
@@ -248,10 +288,18 @@ class assembler_t
 					if (get_addrs(op1,a) || get_symbol(op1,a))
 					{
 						iw.set_address(a);
-						std::cout << iw.as_octal() << std::endl;
+						// std::cout << iw.as_octal() << std::endl;
 					}
 					else
 						return false;
+				}
+				if (mask==iw_t::kDECODE_SECTION_LEVEL)
+				{
+					// expect Psl where s is section 0-7 and l is level 0-7
+					if (op2.size()!=3 || op2[0]!='P' || !isdigit(op2[1]) || !isdigit(op2[2]) || op2[1]<'0' || op2[1]>'7' || op2[2]<'0' || op2[2]>'7')
+						return false;
+					iw.set_section2( op2[1]-'0' );
+					iw.set_level( op2[2]-'0' );
 				}
 			}
 		}
