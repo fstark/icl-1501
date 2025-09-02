@@ -84,7 +84,7 @@
 
 Cogar/Singer revision numbering example:
 
-23-0563-300 => publication
-23-0563-300-00 => original printing (APR75)
-23-0563-300B-01 => reprinted (APR76)
-23-0563-300B-02 => first revision (DEC76)
+* 23-0563-300 => publication
+* 23-0563-300-00 => original printing (APR75)
+* 23-0563-300B-01 => reprinted (APR76)
+* 23-0563-300B-02 => first revision (DEC76)
