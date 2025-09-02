@@ -6,7 +6,7 @@ UNAME_S := $(shell uname -s)
 CXX = g++
 CXXFLAGS = -std=c++20 -O2 -Wall -g
 TARGET = icl1501
-IMGUI_DIR = ../third_party/imgui
+IMGUI_DIR = ./imgui
 IMGUI_SRCS = \
 	$(IMGUI_DIR)/imgui.cpp \
 	$(IMGUI_DIR)/imgui_draw.cpp \
