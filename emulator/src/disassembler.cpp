@@ -99,3 +99,42 @@ const std::string disassembler_t::disassemble(const iw_t& instruction) const
 
     return result;
 }
+
+std::string disassemble_binary(const disassembler_t& disassembler, const binary_t& binary)
+{
+    std::string result;
+    
+    for (const auto& span : binary.spans())
+    {
+        // Add ORG directive for each span
+        result += "\tORG " + span.start_address_.as_string() + "\n\n";
+        
+        // Check if span size is odd (cannot be disassembled as instruction words)
+        if (span.data_.size() % 2 != 0)
+        {
+            throw std::runtime_error("Cannot disassemble span at " + span.start_address_.as_string() + 
+                                    ": odd number of bytes (" + std::to_string(span.data_.size()) + ")");
+        }
+        
+        // Disassemble each instruction word in the span
+        addrs_t current_address = span.start_address_;
+        for (size_t i = 0; i < span.data_.size(); i += 2)
+        {
+            // Create instruction word from two bytes
+            uint8_t left_byte = span.data_[i];
+            uint8_t right_byte = span.data_[i + 1];
+            iw_t instruction(left_byte, right_byte);
+            
+            // result += current_address.as_string() + ": " + 
+            //          instruction.as_octal() + "      " + 
+            result += "\t" + disassembler.disassemble(instruction) + "\n";
+            
+            current_address = current_address.next_instruction();
+        }
+        
+        // Add blank line between spans for readability
+        result += "\n\n";
+    }
+    
+    return result;
+}

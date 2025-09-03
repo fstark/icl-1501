@@ -7,6 +7,11 @@ class assembler_t
 	public:
 	assembler_t() : addr{0,0} {}
 	addrs_t addr;
+	int pass_ = 0;
+
+	void set_pass( int p ) { pass_ = p; }
+
+	void set_addr( addrs_t a ) { addr = a; }
 
 	typedef struct
 	{
@@ -43,7 +48,18 @@ class assembler_t
 				return true;
 			}
 		}
-		return false;
+
+		// Symbol not found, fatal in pass1
+		return pass_!=1;
+	}
+
+	void dump_symbols( std::ostream & out )
+	{
+		out << "\n\nSymbol table:" << std::endl;
+		for ( auto &s : symbols )
+		{
+			out << "  " << s.label << " = " << s.addr.as_string() << std::endl;
+		}
 	}
 
 	uint8_t parse_op1( const std::string & op, char c )
@@ -353,7 +369,7 @@ class assembler_t
 				throw std::runtime_error("Label must end with '=' or ':'");
 			label = code.substr(first_non_ws, label_end - first_non_ws);
 			//	labels are [A-Z][A-Z0-9]*
-			if (label.empty() || !isalpha(label[0]) || !all_of(label.begin()+1, label.end(), [](char c){ return isalnum(c) && isupper(c); }))
+			if (label.empty() || !isalpha(label[0]) || !all_of(label.begin()+1, label.end(), [](char c){ return c=='_' || (c>='A' && c<='Z') || (c>='0' && c<='9'); }))
 				throw std::runtime_error("Invalid label: " + label);
 
 // std::cout << "[" << label << "]" << std::endl;
@@ -427,3 +443,9 @@ class assembler_t
 		return assemble( mnemonic, op1, op2, iw );
 	}
 };
+
+// Forward declaration for binary_t
+class binary_t;
+
+// Free function to assemble source code into a binary_t
+binary_t assemble(const std::string &source);

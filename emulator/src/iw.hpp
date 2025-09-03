@@ -503,7 +503,7 @@ public:
             instruction_def{kBRU, "BRU", 0b01000000'00000000, 0b11111000'00000001, kDECODE_ADRS_LEVEL_BYTE},
             instruction_def{kBRE, "BRE", 0b01000000'00000001, 0b11111000'00000001, kDECODE_ADRS_LEVEL_BYTE},
             instruction_def{kBRH, "BRH", 0b01001000'00000000, 0b11111000'00000001, kDECODE_ADRS_LEVEL_BYTE},
-            instruction_def{kBRL, "BRL", 0b01001000'00000001, 0b11111000'00000001, kDECODE_ADRS_LEVEL_BYTE},
+            instruction_def{kBRL, "BRL", 0b01001000'00000001, 0b11111000'00000001, kDECODE_ADRS_LEVEL_BYTE}, // ok
             instruction_def{kSBU, "SBU", 0b01010000'00000000, 0b11111000'00000001, kDECODE_ADRS_LEVEL_BYTE},
             instruction_def{kSBE, "SBE", 0b01010000'00000001, 0b11111000'00000001, kDECODE_ADRS_LEVEL_BYTE},
             instruction_def{kSBH, "SBH", 0b01011000'00000000, 0b11111000'00000001, kDECODE_ADRS_LEVEL_BYTE},
@@ -526,12 +526,12 @@ public:
             instruction_def{kLDA_Ind, "LDA", 0b10001000'00000000, 0b11111000'00000011, kDECODE_INDEX_REGISTER_OP | kDECODE_SECTION_LEVEL},
             instruction_def{kLDA_Ind, "LDA", 0b10001000'00000010, 0b11111000'00000011, kDECODE_INDEX_REGISTER_OP | kDECODE_SECTION_LEVEL},
             instruction_def{kLDA_Ind, "LDA", 0b10001000'00000011, 0b11111000'00000011, kDECODE_INDEX_REGISTER_OP | kDECODE_SECTION_LEVEL},
-            instruction_def{kLDX, "LDX", 0b10000000'00000000, 0b11111000'00000000, kDECODE_INDEX_REGISTER | kDECODE_OLITERAL},
+            instruction_def{kLDX, "LDX", 0b10000000'00000000, 0b11111000'00000000, kDECODE_INDEX_REGISTER | kDECODE_OLITERAL}, // ok
             instruction_def{kLIA, "LIA", 0b10010000'00000000, 0b11111000'00000000, kDECODE_INDEX_REGISTER | kDECODE_OLITERAL},
             instruction_def{kSTA_Dir, "STA", 0b10011000'00000000, 0b11111111'00000000, kDECODE_ZP_ADRS},
-            instruction_def{kSTA_Ind, "STA", 0b10011000'00000000, 0b11111000'00000011, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
-            instruction_def{kSTA_Ind, "STA", 0b10011000'00000010, 0b11111000'00000011, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
-            instruction_def{kSTA_Ind, "STA", 0b10011000'00000011, 0b11111000'00000011, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
+            instruction_def{kSTA_Ind, "STA", 0b10011000'00000000, 0b11111000'00000011, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER}, // ok
+            instruction_def{kSTA_Ind, "STA", 0b10011000'00000010, 0b11111000'00000011, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER}, // ok
+            instruction_def{kSTA_Ind, "STA", 0b10011000'00000011, 0b11111000'00000011, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER}, // ok
             instruction_def{kADA_Imm, "ADA", 0b10100000'00000000, 0b11111111'00000000, kDECODE_OLITERAL},
             instruction_def{kADA_Dir, "ADA", 0b10101000'00000000, 0b11111111'00000000, kDECODE_ZP_ADRS},
             instruction_def{kADA_Ind, "ADA", 0b10101000'00000000, 0b11111000'00000011, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
@@ -567,8 +567,9 @@ public:
             instruction_def{kCPA_Ind, "CPA", 0b11101000'00000000, 0b11111000'00000011, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
             instruction_def{kCPA_Ind, "CPA", 0b11101000'00000010, 0b11111000'00000011, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
             instruction_def{kCPA_Ind, "CPA", 0b11101000'00000011, 0b11111000'00000011, kDECODE_INDEX_REGISTER_OP | kDECODE_PAGE_NUMBER},
-            instruction_def{kCPX, "CPX", 0b11100000'00000000, 0b11111000'00000000, kDECODE_INDEX_REGISTER | kDECODE_OLITERAL},
-            instruction_def{kIOC, "IOC", 0b01111000'00000000, 0b11111000'00000000, kDECODE_IOC_CHANNEL | kDECODE_OLITERAL | kDECODE_IOC}};
+            instruction_def{kCPX, "CPX", 0b11100000'00000000, 0b11111000'00000000, kDECODE_INDEX_REGISTER | kDECODE_OLITERAL}, // ok
+            instruction_def{kIOC, "IOC", 0b01111000'00000000, 0b11111000'00000000, kDECODE_IOC_CHANNEL | kDECODE_OLITERAL | kDECODE_IOC} // ok
+        };
         return types;
     }
 
@@ -600,10 +601,6 @@ public:
                         iw_t instr(i >> 8, i & 0xff);
                         if (instr.compare(type.value >> 8, type.mask >> 8, type.value & 0xff, type.mask & 0xff))
                         {
-                            if (i==256)
-                            {
-                                std::cout << "Mapping " << type.mnemonic << " to " << std::bitset<16>(i) << " " << bits << " bits" << std::endl;
-                            }
                             instr_map[i] = index;
                         }
                     }

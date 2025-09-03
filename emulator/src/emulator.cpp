@@ -10,6 +10,7 @@
 #include <bitset>
 #include <iomanip>
 #include <iostream>
+#include <sstream>
 
 #include "addrs.hpp"
 #include "iw.hpp"
@@ -17,6 +18,7 @@
 #include "memory.hpp"
 #include "cpu.hpp"
 #include "assembler.hpp"
+#include "binary.hpp"
 
 
 void load_bootstrap(memory_t &memory)
@@ -154,9 +156,18 @@ public:
 #include <format>
 
 bool show_data = false;
+bool show_assembler = false;
 
 addrs_t sAddrs("P00-000");
 addrs_t sIaw("P00-000");
+
+// Static buffer for multiline text editor
+static char text_editor_buffer[1024 * 64] = "// Enter your assembly code here\n// Example:\n ORG P00-000\n LDX R#1 030\n IOC C#0 007\n STA I#1 P00\n";
+
+// Static variables for assembly results
+static std::string assembly_result;
+static std::string assembly_errors;
+static bool assembly_successful = false;
 
 void render_addrs(addrs_t addrs)
 {
@@ -259,6 +270,117 @@ void render_memory(const memory_t &memory, const addrs_t &addrs)
     ImGui::End();
 }
 
+void render_assembler()
+{
+    ImGui::Begin("Assembler", &show_assembler);
+    
+    // Multiline text editor taking up about 60% of the window
+    ImGui::Text("Assembly Code Editor:");
+    ImGui::Separator();
+    
+    // Calculate heights for the split layout
+    ImVec2 window_size = ImGui::GetWindowSize();
+    float editor_height = window_size.y * 0.6f - 100; // Reserve space for buttons and padding
+    float output_height = window_size.y * 0.35f;
+    
+    // Text editor section
+    ImGui::BeginChild("TextEditor", ImVec2(0, editor_height), true);
+    bool text_changed = ImGui::InputTextMultiline("##source", text_editor_buffer, sizeof(text_editor_buffer),
+                             ImVec2(-FLT_MIN, -FLT_MIN),
+                             ImGuiInputTextFlags_AllowTabInput);
+    ImGui::EndChild();
+    
+    // Auto-assemble on text change
+    if (text_changed) {
+        // Clear previous errors but keep successful results
+        assembly_errors.clear();
+        
+        try {
+            // Use the new clean assembly free function from assembler.cpp
+            std::string source_code = std::string(text_editor_buffer);
+            if (!source_code.empty() && source_code.find_first_not_of(" \t\n\r") != std::string::npos) {
+                binary_t (*assemble_func)(const std::string&) = assemble;
+                binary_t binary = assemble_func(source_code);
+                
+                // Use the new to_string function for consistent output
+                assembly_result = to_string(binary);
+                assembly_successful = true;
+            } else {
+                // Empty or whitespace-only input - clear results
+                assembly_result.clear();
+                assembly_successful = false;
+            }
+        }
+        catch (const std::exception &e) {
+            assembly_errors = e.what();
+            assembly_successful = false;
+            // Keep the previous assembly_result intact
+        }
+    }
+    
+    // Action buttons
+    ImGui::Separator();
+    if (ImGui::Button("Clear"))
+    {
+        text_editor_buffer[0] = '\0';
+        // Clear results when clearing text
+        assembly_result.clear();
+        assembly_errors.clear();
+        assembly_successful = false;
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Load Example"))
+    {
+        const char* example = "// Example ICL-1501 Assembly Code\n ORG P00-000\n LDX R#1 030        ; Load index register 1 with 030\n IOC C#0 007        ; I/O control - tape transfer\n STA I#1 P00        ; Store accumulator indirect\n CPX R#1 230        ; Compare index register 1 with 230\n BRL P1-002         ; Branch if less\n IOC C#0 016        ; I/O control - select deck\n IOC C#0 005        ; I/O control - stop tape\n BRU P0-030         ; Branch unconditional\n";
+        strncpy(text_editor_buffer, example, sizeof(text_editor_buffer) - 1);
+        text_editor_buffer[sizeof(text_editor_buffer) - 1] = '\0';
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Copy Output"))
+    {
+        if (assembly_successful && !assembly_result.empty()) {
+            ImGui::SetClipboardText(assembly_result.c_str());
+        }
+    }
+    
+    // Output section
+    ImGui::Separator();
+    ImGui::Text("Assembly Output:");
+    
+    // Reserve space for error display at bottom
+    float error_section_height = 60.0f; // Fixed height for error messages
+    float adjusted_output_height = output_height - error_section_height;
+    
+    ImGui::BeginChild("AssemblyOutput", ImVec2(0, adjusted_output_height), true);
+    
+    // Show assembly results if we have any - no error messages here
+    if (!assembly_result.empty()) {
+        if (assembly_successful) {
+            ImGui::TextColored(ImVec4(0, 1, 0, 1), "Assembly successful!");
+        } else {
+            ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1), "Previous successful assembly:");
+        }
+        ImGui::Separator();
+        ImGui::TextUnformatted(assembly_result.c_str());
+    } else {
+        ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1), "No assembly output yet. Type assembly code above to see results.");
+    }
+    
+    ImGui::EndChild();
+    
+    // Separate error section at the bottom - fixed position
+    ImGui::BeginChild("ErrorSection", ImVec2(0, error_section_height), true, ImGuiWindowFlags_NoScrollbar);
+    if (!assembly_errors.empty()) {
+        ImGui::TextColored(ImVec4(1, 0, 0, 1), "Assembly Error:");
+        ImGui::TextWrapped("%s", assembly_errors.c_str());
+    } else {
+        ImGui::TextColored(ImVec4(0, 0.8f, 0, 1), "Ready");
+    }
+    ImGui::EndChild();
+    
+    ImGui::End();
+}
+
 void render_screen( const crt_t::screen_buffer_t &screen)
 {
     static GLuint texture = 0;
@@ -314,6 +436,11 @@ void render_internals( emulator_t &emu )
     if (ImGui::Button("Step"))
     {
         cpu.step();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Assembler"))
+    {
+        show_assembler = true;
     }
 
     if (ImGui::CollapsingHeader("CPU"))
@@ -443,6 +570,8 @@ void render_emulator(emulator_t &emu)
     render_screen( emu.screen() );
     if (show_data)
         render_memory( emu.memory(), sAddrs );
+    if (show_assembler)
+        render_assembler();
 }
 
 void run_emulator()
@@ -518,6 +647,10 @@ void assemble(const std::string &source_file, const std::string &output_file = "
         throw std::runtime_error("Failed to open source file: " + source_file);
     }
 
+    // Read the entire file content
+    std::string content((std::istreambuf_iterator<char>(source)),
+                       std::istreambuf_iterator<char>());
+
     std::ostream *out;
     std::ofstream output;
     if (output_file.empty()) {
@@ -529,37 +662,31 @@ void assemble(const std::string &source_file, const std::string &output_file = "
         out = &output;
     }
 
-    iw_t iw{0,0};
-    assembler_t assembler;
-    int source_line = 0;
-
-    std::string line;
-    while (std::getline(source, line))
-    {
-        source_line++;
-        try
-        {
-            if (assembler.assemble(line,iw))
-            {
-                *out << iw.as_octal() << " ";
-            }
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Error assembling line at " << source_line << ": " << e.what() << std::endl;
-            std::cerr << "  " << line << std::endl;
-        }
+    try {
+        // Generate the output using the new to_string function
+        // Call the free function by using function pointer to disambiguate
+        binary_t (*assemble_func)(const std::string&) = assemble;
+        binary_t binary = assemble_func(content);
+        *out << to_string(binary);
     }
-    std::cout << std::endl;
+    catch (const std::exception &e) {
+        std::cerr << "Assembly failed: " << e.what() << std::endl;
+        throw;
+    }
 }
 
-void disassemble(const std::string &source_file, const std::string &output_file = "", const std::string &start_address = "P00-000")
+void disassemble(const std::string &source_file, const std::string &output_file = "")
 {
-    std::ifstream source(source_file);
+    std::ifstream source(source_file, std::ios::binary);
     if (!source)
     {
         throw std::runtime_error("Failed to open source file: " + source_file);
     }
+
+    // Read the entire file content
+    std::string content((std::istreambuf_iterator<char>(source)),
+                       std::istreambuf_iterator<char>());
+    
     std::ostream *out;
     std::ofstream output;
     if (output_file.empty()) {
@@ -571,23 +698,21 @@ void disassemble(const std::string &source_file, const std::string &output_file 
         out = &output;
     }
 
-    disassembler_t disassembler;
-    addrs_t current_address(start_address);
-    std::string line;
-    std::string word;
-    while (source >> word)
+    try {
+        // Parse the content as a binary_t
+        binary_t binary = binary_from_string(content);
+        
+        // Create disassembler and generate disassembly
+        disassembler_t disassembler;
+        std::string disassembly = disassemble_binary(disassembler, binary);
+        
+        // Output the result
+        *out << disassembly;
+    }
+    catch (const std::exception &e)
     {
-        line = word;
-        try
-        {
-            iw_t iw = iw_t::from_octal(line);
-            *out << current_address.as_string() << ": " << iw.as_octal() << "      " << disassembler.disassemble(iw) << std::endl;
-            current_address = current_address.next_instruction();
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Error disassembling line at " << current_address.as_string() << ": " << e.what() << std::endl;
-        }
+        std::cerr << "Error disassembling file: " << e.what() << std::endl;
+        throw;
     }
 }
 
@@ -646,20 +771,13 @@ int main(int argc, char **argv)
         std::string mode = argv[1];
         if (mode == "-d" && argc >= 3) {
             std::string infile = argv[2];
-            std::string outfile = (argc >= 4 && argv[3][0] != '-') ? argv[3] : "";
-            std::string start_address = "P00-000";
-            for (int i = 3; i < argc; ++i) {
-                if (std::string(argv[i]) == "-a" && i + 1 < argc) {
-                    start_address = argv[i + 1];
-                }
-            }
-            disassemble(infile, outfile, start_address);
+            std::string outfile = (argc >= 4) ? argv[3] : "";
+            disassemble(infile, outfile);
             return 0;
         } else if (mode == "-a" && argc >= 3) {
-            if (argc == 4)
-                assemble(argv[2], argv[3]);
-            else
-                assemble(argv[2]);
+            std::string infile = argv[2];
+            std::string outfile = (argc >= 4) ? argv[3] : "";
+            assemble(infile, outfile);
             return 0;
         } else if (mode == "-t") {
             run_tests();
@@ -667,7 +785,7 @@ int main(int argc, char **argv)
         } else {
             std::cerr << "Usage:\n";
             std::cerr << "  " << argv[0] << "            # run emulator\n";
-            std::cerr << "  " << argv[0] << " -d infile [outfile] [-a address]  # disassemble\n";
+            std::cerr << "  " << argv[0] << " -d infile [outfile]  # disassemble\n";
             std::cerr << "  " << argv[0] << " -a infile [outfile]  # assemble\n";
             std::cerr << "  " << argv[0] << " -t  # run tests\n";
             return 1;

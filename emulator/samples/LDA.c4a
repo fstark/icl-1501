@@ -1,0 +1,43 @@
+; Test of LDA instruction emulation
+
+	ORG P10-000		; Test data
+	DBO 000-001
+	DBO 002-055
+
+
+	ORG P11-000		; Test Program
+
+TEST_LDA:
+	DBO 001-001		; Start of test -- LDA 042
+	LDA 042			; Load 042 in A
+	CPA 042
+	BRE CONT0
+	DBO 001-377		; Failed
+
+CONT0:
+	DBO 001-002		; Start of test 2 -- LDA P00-003
+	LDA P00-003		; Read 055 from P10-003, because we are section 1
+	CPA 055
+	BRE CONT1
+	DBO 001-377		; Failed
+
+CONT1:
+	DBO 001-003		; Start of test 3 -- LDA I#1 P10
+	LDX R#1 003
+	LDA I#1 P10		; Read 055 from P10-000+003, increment R#1
+	CPA 055
+	BRE CONT2
+	DBO 001-377		; Failed
+
+CONT2:
+	DBO 001-004		; Start of test 4 -- LDA R#1 P00
+	LDX R#2 001
+	LDA R#2 P00		; Read from P00-001, aka R#1
+	CPA 004			; (should have incremented to 4)
+	BRE CONT3
+	DBO 001-377		; Failed
+
+CONT3:
+
+SUCCESS:
+	DBO 001-000		; Success

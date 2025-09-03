@@ -50,7 +50,8 @@
 		"unordered_map": "cpp",
 		"variant": "cpp",
 		"vector": "cpp",
-		"cstddef": "cpp"
+		"cstddef": "cpp",
+		"ranges": "cpp"
 	},
 	"editor.formatOnSave": false
 }

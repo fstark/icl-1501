@@ -8,6 +8,7 @@
 #include "addrs.hpp"
 #include "iw.hpp"
 
+//	A memory board
 class memory_t
 {
 	uint8_t data[16384];
