@@ -4,38 +4,63 @@
 #include <algorithm>
 #include <cassert>
 #include <vector>
+#include <array>
 
 #include "addrs.hpp"
 #include "iw.hpp"
+
+// Forward declaration
+class binary_t;
 
 //	A memory board
 class memory_t
 {
 	uint8_t data[16384];
+	std::array<bool,16384> monitored_;  //  If true, this address is monitored for changes (for CRT)
+	bool changed_ = true;  //  If true, a monitored address has changed since last checked
 
 public:
 	memory_t() { std::fill(std::begin(data), std::end(data), 0); }
 
-	uint8_t &operator[](size_t index)
+    void clear_crt_monitor()
+	{
+		std::fill(monitored_.begin(), monitored_.end(), false);
+	}
+
+	void monitor( const addrs_t &start, size_t length )
+	{
+		assert(start.linear()+length <= sizeof(data));
+		for ( size_t i=0; i<length; i++ )
+			monitored_[start.linear()+i] = true;
+		std::cout << "Memory monitor from " << start.as_string() << " for " << length << " bytes" << std::endl;
+	}
+
+	bool changed()
+	{
+		bool was_changed = changed_;
+		changed_ = false;
+		return was_changed;
+	}
+
+	uint8_t operator[](size_t index) const
 	{
 		assert(index < sizeof(data));
 		return data[index];
 	}
 
-	const uint8_t &operator[](size_t index) const
-	{
-		assert(index < sizeof(data));
-		return data[index];
-	}
-
-	uint8_t &operator[](addrs_t addr)
+	uint8_t operator[](addrs_t addr) const
 	{
 		return (*this)[addr.linear()];
 	}
 
-	const uint8_t &operator[](addrs_t addr) const
+	void set(const addrs_t adrs, uint8_t b)
 	{
-		return (*this)[addr.linear()];
+		data[adrs.linear()] = b;
+		if (monitored_[adrs.linear()])
+		{
+			changed_ = true;
+			std::cout << "Memory changed at " << adrs.as_string() << " to " << to_octal(b) << std::endl;
+		}
 	}
 
 	void get(const addrs_t adrs, uint8_t &b0, uint8_t &b1) const
@@ -46,8 +71,8 @@ public:
 
 	void set(const addrs_t adrs, uint8_t b0, uint8_t b1)
 	{
-		(*this)[adrs] = b0;
-		(*this)[adrs + 1] = b1;
+		set(adrs, b0);
+		set(adrs + 1, b1);
 	}
 
 	iw_t get_instruction(const addrs_t adrs) const
@@ -80,7 +105,7 @@ public:
 		assert(adrs.linear() + bytes.size() <= sizeof(data));
 		for (size_t i = 0; i < bytes.size(); ++i)
 		{
-			(*this)[adrs + i] = bytes[i];
+			set(adrs + i, bytes[i]);
 		}
 	}
 
@@ -108,5 +133,8 @@ public:
 		std::cout << std::endl;
 	}
 };
+
+// Store all spans from binary_t into memory_t at their respective addresses
+void store(memory_t& mem, const binary_t& binary);
 
 void test_memory_t();

@@ -1,11 +1,12 @@
 #include "memory.hpp"
+#include "binary.hpp"
 
 void test_memory_t()
 {
     memory_t mem;
-    mem[addrs_t(012, 034)] = 0xAB;
+    mem.set(addrs_t(012, 034), 0xAB);
     assert(mem[addrs_t(012, 034)] == 0xAB);
-    mem[addrs_t(012, 034)] = 0xCD;
+    mem.set(addrs_t(012, 034), 0xCD);
     assert(mem[addrs_t(012, 034)] == 0xCD);
 
     mem.copy({0,0}, {0x01, 0x02, 0x03, 0x04});
@@ -25,4 +26,12 @@ void test_memory_t()
     assert(mem[addrs_t(0, 1)] == 0042);
     assert(mem[addrs_t(0, 2)] == 0123);
     assert(mem[addrs_t(0, 3)] == 0056);
+}
+
+void store(memory_t& mem, const binary_t& binary)
+{
+    for (const auto& span : binary.spans())
+    {
+        mem.copy(span.start_address_, span.data_);
+    }
 }

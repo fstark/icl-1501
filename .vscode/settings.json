@@ -51,7 +51,8 @@
 		"variant": "cpp",
 		"vector": "cpp",
 		"cstddef": "cpp",
-		"ranges": "cpp"
+		"ranges": "cpp",
+		"ostream": "cpp"
 	},
 	"editor.formatOnSave": false
 }

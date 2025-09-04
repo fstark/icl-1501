@@ -63,16 +63,16 @@ public:
         return addrs_t(0, reg );
     }
 
-    uint8_t &index_register(int reg)
+    uint8_t index_register(int reg) const
     {
         assert(reg >= 1 && reg <= 8);
         return memory_[index_register_addrs(reg)];
     }
 
-    const uint8_t &index_register(int reg) const
+    void set_index_register(int reg, uint8_t b)
     {
         assert(reg >= 1 && reg <= 8);
-        return memory_[index_register_addrs(reg)];
+        memory_.set(index_register_addrs(reg),b);
     }
 
     cpu_t(memory_t &mem, io_t &io_device) : memory_(mem), io_(io_device) {}
@@ -100,15 +100,16 @@ public:
         }
     };
 
-    void register_update(uint8_t &reg, iw_t::eIndexingMode mode)
+    void register_update(uint8_t reg, iw_t::eIndexingMode mode)
     {
+        addrs_t areg = index_register_addrs(reg);
         switch (mode)
         {
             case iw_t::kIncrement:
-                reg++;
+                memory_.set(areg,memory_[areg]+1);
                 break;
             case iw_t::kDecrement:
-                reg--;
+                memory_.set(areg,memory_[areg]-1);
                 break;
             case iw_t::kUnchanged:
                 // Do nothing
@@ -156,16 +157,20 @@ public:
         switch (instr_type)
         {
             case iw_t::kLDX:
-                index_register(iw.indexing_register()) = iw.literal();
+                set_index_register(iw.indexing_register(), iw.literal());
                 break;
             case iw_t::kIOC:
                 io_.execute(iw);
+                memory_.clear_crt_monitor();
+                memory_.monitor( io_.crt().screen(), 256 );
+                memory_.monitor( io_.crt().font(), 320 );
+                memory_.monitor( io_.crt().alt_font(), 320 );
                 break;
             case iw_t::kSTA_Ind:
             {
                 addrs_t addr{ iw.page_number(), index_register(iw.indexing_register()) };
-                memory_[addr] = io_.accumulator();
-                register_update(index_register(iw.indexing_register()), iw.indexing_mode());
+                memory_.set(addr,io_.accumulator());
+                register_update(iw.indexing_register(), iw.indexing_mode());
                 break;
             }
             case iw_t::kCPX:

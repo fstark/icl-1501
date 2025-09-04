@@ -93,7 +93,7 @@ void load_font(memory_t &memory)
         ));
     for (addrs_t a = addrs_t{"P06-000"}; a!=addrs_t{"P07-177"}; a = a+1)
     {
-        memory[a] ^= 0xff; // Inverted font
+        memory.set( a, memory[a] ^ 0xff ); // Inverted font
     }
     memory.copy("P10-000", vector_from_ascii( " -_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ,#@-%$*.<>/()?c=\"!':;-\\&|"));
     memory.copy("P10-100", vector_from_ascii(" -_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ,#@-%$*.<>/()?c=\"!':;-\\&|",true));
@@ -136,9 +136,23 @@ public:
         load_bootstrap(memory_);
         load_font(memory_);
         // io_.execute(iw_t{0174, 0b00001010}); // IOC C#4 020 ; Screen in P01-000, underline
-        io_.execute(iw_t{0174, 0b01001000}); // IOC C#4 120 ; Screen in P10-000, underline
+        cpu_.execute(iw_t{0174, 0b01001000}); // IOC C#4 120 ; Screen in P10-000, underline
         cpu_.reset();
-        io_.crt().render( screen_ );
+
+        render_crt();
+    }
+
+    void render_crt()
+    {
+        /*
+        ORG P04-000
+        DBO 377-377
+         */
+        if (memory_.changed())
+        {
+            std::cout << "CRT rendered." << std::endl;
+            io_.crt().render( screen_ );
+        }
     }
 
     cpu_t &cpu() { return cpu_; }
@@ -168,6 +182,7 @@ static char text_editor_buffer[1024 * 64] = "// Enter your assembly code here\n/
 static std::string assembly_result;
 static std::string assembly_errors;
 static bool assembly_successful = false;
+static bool loaded_into_memory = false;
 
 void render_addrs(addrs_t addrs)
 {
@@ -270,7 +285,7 @@ void render_memory(const memory_t &memory, const addrs_t &addrs)
     ImGui::End();
 }
 
-void render_assembler()
+void render_assembler(emulator_t& emu)
 {
     ImGui::Begin("Assembler", &show_assembler);
     
@@ -294,12 +309,16 @@ void render_assembler()
     if (text_changed) {
         // Clear previous errors but keep successful results
         assembly_errors.clear();
+        loaded_into_memory = false; // Reset load status when text changes
         
         try {
             // Use the new clean assembly free function from assembler.cpp
             binary_t binary = assemble(text_editor_buffer);
             assembly_result = to_string(binary);
             assembly_successful = true;
+
+            store(emu.memory(), binary);
+            // emu.render_crt();
         }
         catch (const std::exception &e) {
             assembly_errors = e.what();
@@ -317,6 +336,7 @@ void render_assembler()
         assembly_result.clear();
         assembly_errors.clear();
         assembly_successful = false;
+        loaded_into_memory = false;
     }
     ImGui::SameLine();
     if (ImGui::Button("Load Example"))
@@ -324,6 +344,7 @@ void render_assembler()
         const char* example = "// Example ICL-1501 Assembly Code\n ORG P00-000\n LDX R#1 030        ; Load index register 1 with 030\n IOC C#0 007        ; I/O control - tape transfer\n STA I#1 P00        ; Store accumulator indirect\n CPX R#1 230        ; Compare index register 1 with 230\n BRL P1-002         ; Branch if less\n IOC C#0 016        ; I/O control - select deck\n IOC C#0 005        ; I/O control - stop tape\n BRU P0-030         ; Branch unconditional\n";
         strncpy(text_editor_buffer, example, sizeof(text_editor_buffer) - 1);
         text_editor_buffer[sizeof(text_editor_buffer) - 1] = '\0';
+        loaded_into_memory = false; // Reset load status when loading example
     }
     ImGui::SameLine();
     if (ImGui::Button("Copy Output"))
@@ -332,6 +353,8 @@ void render_assembler()
             ImGui::SetClipboardText(assembly_result.c_str());
         }
     }
+    ImGui::SameLine();
+
     
     // Output section
     ImGui::Separator();
@@ -347,6 +370,10 @@ void render_assembler()
     if (!assembly_result.empty()) {
         if (assembly_successful) {
             ImGui::TextColored(ImVec4(0, 1, 0, 1), "Assembly successful!");
+            if (loaded_into_memory) {
+                ImGui::SameLine();
+                ImGui::TextColored(ImVec4(0, 0.8f, 1, 1), " [Loaded into memory]");
+            }
         } else {
             ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1), "Previous successful assembly:");
         }
@@ -557,11 +584,12 @@ void render_emulator(emulator_t &emu)
     sIaw = emu.cpu().iaw();
 
     render_internals( emu );
+    emu.render_crt();
     render_screen( emu.screen() );
     if (show_data)
         render_memory( emu.memory(), sAddrs );
     if (show_assembler)
-        render_assembler();
+        render_assembler(emu);
 }
 
 void run_emulator()
@@ -592,6 +620,8 @@ void run_emulator()
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // Enable Docking
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;      // Enable Multi-Viewport / Platform Windows
     ImGui::StyleColorsDark();
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
 
@@ -612,6 +642,26 @@ void run_emulator()
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
 
+        // Create a fullscreen dockspace
+        ImGuiViewport* viewport = ImGui::GetMainViewport();
+        ImGui::SetNextWindowPos(viewport->Pos);
+        ImGui::SetNextWindowSize(viewport->Size);
+        ImGui::SetNextWindowViewport(viewport->ID);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+        ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+        window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+        window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+
+        ImGui::Begin("DockSpace Demo", nullptr, window_flags);
+        ImGui::PopStyleVar(2);
+
+        // Create the dockspace
+        ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
+        ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
+
+        ImGui::End();
+
         render_emulator(emu);
 
         ImGui::Render();
@@ -619,6 +669,19 @@ void run_emulator()
         glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
         glClear(GL_COLOR_BUFFER_BIT);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+        // Update and Render additional Platform Windows
+        // (Platform functions may change the current OpenGL context, so we save/restore it to make it easier to paste this code elsewhere.
+        //  For this specific demo app we could also call SDL_GL_MakeCurrent(window, gl_context) directly)
+        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+        {
+            SDL_Window* backup_current_window = SDL_GL_GetCurrentWindow();
+            SDL_GLContext backup_current_context = SDL_GL_GetCurrentContext();
+            ImGui::UpdatePlatformWindows();
+            ImGui::RenderPlatformWindowsDefault();
+            SDL_GL_MakeCurrent(backup_current_window, backup_current_context);
+        }
+
         SDL_GL_SwapWindow(window);
     }
     ImGui_ImplOpenGL3_Shutdown();
