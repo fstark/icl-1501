@@ -155,14 +155,14 @@ public:
 
 #include <format>
 
-bool show_data = false;
-bool show_assembler = false;
+bool show_data = true;
+bool show_assembler = true;
 
 addrs_t sAddrs("P00-000");
 addrs_t sIaw("P00-000");
 
 // Static buffer for multiline text editor
-static char text_editor_buffer[1024 * 64] = "// Enter your assembly code here\n// Example:\n ORG P00-000\n LDX R#1 030\n IOC C#0 007\n STA I#1 P00\n";
+static char text_editor_buffer[1024 * 64] = "// Enter your assembly code here\n// Example:\n ORG P00-100\n LDX R#1 030\n IOC C#0 007\n STA I#1 P00\n";
 
 // Static variables for assembly results
 static std::string assembly_result;
@@ -297,19 +297,9 @@ void render_assembler()
         
         try {
             // Use the new clean assembly free function from assembler.cpp
-            std::string source_code = std::string(text_editor_buffer);
-            if (!source_code.empty() && source_code.find_first_not_of(" \t\n\r") != std::string::npos) {
-                binary_t (*assemble_func)(const std::string&) = assemble;
-                binary_t binary = assemble_func(source_code);
-                
-                // Use the new to_string function for consistent output
-                assembly_result = to_string(binary);
-                assembly_successful = true;
-            } else {
-                // Empty or whitespace-only input - clear results
-                assembly_result.clear();
-                assembly_successful = false;
-            }
+            binary_t binary = assemble(text_editor_buffer);
+            assembly_result = to_string(binary);
+            assembly_successful = true;
         }
         catch (const std::exception &e) {
             assembly_errors = e.what();
@@ -639,7 +629,7 @@ void run_emulator()
     SDL_Quit();
 }
 
-void assemble(const std::string &source_file, const std::string &output_file = "")
+void cmd_assemble(const std::string &source_file, const std::string &output_file = "")
 {
     std::ifstream source(source_file);
     if (!source)
@@ -663,10 +653,7 @@ void assemble(const std::string &source_file, const std::string &output_file = "
     }
 
     try {
-        // Generate the output using the new to_string function
-        // Call the free function by using function pointer to disambiguate
-        binary_t (*assemble_func)(const std::string&) = assemble;
-        binary_t binary = assemble_func(content);
+        binary_t binary = assemble(content);
         *out << to_string(binary);
     }
     catch (const std::exception &e) {
@@ -675,7 +662,7 @@ void assemble(const std::string &source_file, const std::string &output_file = "
     }
 }
 
-void disassemble(const std::string &source_file, const std::string &output_file = "")
+void cmd_disassemble(const std::string &source_file, const std::string &output_file = "")
 {
     std::ifstream source(source_file, std::ios::binary);
     if (!source)
@@ -772,12 +759,12 @@ int main(int argc, char **argv)
         if (mode == "-d" && argc >= 3) {
             std::string infile = argv[2];
             std::string outfile = (argc >= 4) ? argv[3] : "";
-            disassemble(infile, outfile);
+            cmd_disassemble(infile, outfile);
             return 0;
         } else if (mode == "-a" && argc >= 3) {
             std::string infile = argv[2];
             std::string outfile = (argc >= 4) ? argv[3] : "";
-            assemble(infile, outfile);
+            cmd_assemble(infile, outfile);
             return 0;
         } else if (mode == "-t") {
             run_tests();
