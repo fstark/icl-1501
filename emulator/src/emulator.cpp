@@ -443,8 +443,7 @@ void render_internals( emulator_t &emu )
 {
     auto &cpu = emu.cpu();
 
-    ImGui::Begin("CPU State");
-
+    ImGui::Begin("Control Panel");
     if (ImGui::Button("Reset"))
     {
         cpu.reset();
@@ -459,81 +458,81 @@ void render_internals( emulator_t &emu )
     {
         show_assembler = true;
     }
+    ImGui::End();
 
-    if (ImGui::CollapsingHeader("CPU"))
-    {
-        auto pc = cpu.iaw();
-        auto iw = cpu.memory().get_instruction(pc);
-        render_active_addrs("PC: ", pc, kID_PC);
-        ImGui::SameLine();
-        ImGui::Text("IW: %s", iw.as_octal().c_str());
-        static disassembler_t disassembler;
-        ImGui::Text("%s", disassembler.disassemble(iw).c_str());
-
-        ImGui::Separator();
-        ImGui::Text("   SP: %d", cpu.sp());
-        ImGui::Text("Stack:");
-        for (int i = 0; i < 8; ++i) {
-            if (i == cpu.sp())
-                ImGui::Text( "*" );
-            else
-                ImGui::Text( " " );
+        ImGui::Begin("CPU");
+            auto pc = cpu.iaw();
+            auto iw = cpu.memory().get_instruction(pc);
+            render_active_addrs("PC: ", pc, kID_PC);
             ImGui::SameLine();
-            render_active_addrs(cpu.sp_base(i), kID_SP + 1 + i*2);
-            ImGui::SameLine(80);
-            render_active_addrs(cpu.memory().get_addrs(cpu.sp_base(i)), kID_SP + 1 + i*2 + 1);
-        }
+            ImGui::Text("IW: %s", iw.as_octal().c_str());
+            static disassembler_t disassembler;
+            ImGui::Text("%s", disassembler.disassemble(iw).c_str());
 
-        ImGui::Separator();
-        static const char *compare_str[] = {"L", "E", "H"};
-        ImGui::Text("ACC: %s", to_octal(cpu.io().accumulator()).c_str());
-        ImGui::SameLine();
-        ImGui::Text("Compare: %s", compare_str[cpu.compare_]);
-
-        ImGui::Text("Index Registers:");
-        for (int i = 1; i <= 8; ++i)
-        {
-        ImGui::BeginGroup();
-        ImGui::Text("R#%d", i );
-        ImGui::Text("%s", to_octal(cpu.index_register(i)).c_str());
-        ImGui::EndGroup();
-        if (i < 8) ImGui::SameLine();
-        }
-    }
-
-    if (ImGui::CollapsingHeader("CRT"))
-    {
-        auto crt = emu.io().crt();
-
-        render_active_addrs("  Screen: ", crt.screen(), kID_CRT);
-        render_active_addrs("    Font: ", crt.font(), kID_FONT);
-        render_active_addrs("Alt Font: ", crt.alt_font(), kID_ALT_FONT);
-    }
-
-    if (ImGui::CollapsingHeader("Tapes"))
-    {
-        auto io = emu.io();
-
-        for (int i=0;i!=io.tape_count();i++)
-        {
-            auto &tape_reader = io.tape_reader(i);
-            if (i == io.tape_index())
-                ImGui::Text("->");
-            else
-                ImGui::Text("  ");
-            ImGui::SameLine();
-            ImGui::Text("Tape %d:", i + 1);
-            ImGui::SameLine();
-            if (tape_reader.has_tape())
+            ImGui::Separator();
+            ImGui::Text("   SP: %d", cpu.sp());
+            ImGui::Text("Stack:");
+            for (int i = 0; i < 8; ++i)
             {
-                ImGui::Text( "Loaded at ");
+                if (i == cpu.sp())
+                    ImGui::Text("*");
+                else
+                    ImGui::Text(" ");
                 ImGui::SameLine();
-                ImGui::Text("%s",tape_reader.tape_location().as_string().c_str());
+                render_active_addrs(cpu.sp_base(i), kID_SP + 1 + i * 2);
+                ImGui::SameLine(80);
+                render_active_addrs(cpu.memory().get_addrs(cpu.sp_base(i)), kID_SP + 1 + i * 2 + 1);
+            }
 
-                switch (tape_reader.mode())
+            ImGui::Separator();
+            static const char *compare_str[] = {"L", "E", "H"};
+            ImGui::Text("ACC: %s", to_octal(cpu.io().accumulator()).c_str());
+            ImGui::SameLine();
+            ImGui::Text("Compare: %s", compare_str[cpu.compare_]);
+
+            ImGui::Text("Index Registers:");
+            for (int i = 1; i <= 8; ++i)
+            {
+                ImGui::BeginGroup();
+                ImGui::Text("R#%d", i);
+                ImGui::Text("%s", to_octal(cpu.index_register(i)).c_str());
+                ImGui::EndGroup();
+                if (i < 8)
+                    ImGui::SameLine();
+            }
+            ImGui::End();
+
+            ImGui::Begin("CRT");
+            auto crt = emu.io().crt();
+
+            render_active_addrs("  Screen: ", crt.screen(), kID_CRT);
+            render_active_addrs("    Font: ", crt.font(), kID_FONT);
+            render_active_addrs("Alt Font: ", crt.alt_font(), kID_ALT_FONT);
+            ImGui::End();
+
+            ImGui::Begin("Tapes");
+            auto io = emu.io();
+
+            for (int i = 0; i != io.tape_count(); i++)
+            {
+                auto &tape_reader = io.tape_reader(i);
+                if (i == io.tape_index())
+                    ImGui::Text("->");
+                else
+                    ImGui::Text("  ");
+                ImGui::SameLine();
+                ImGui::Text("Tape %d:", i + 1);
+                ImGui::SameLine();
+                if (tape_reader.has_tape())
                 {
+                    ImGui::Text("Loaded at ");
+                    ImGui::SameLine();
+                    ImGui::Text("%s", tape_reader.tape_location().as_string().c_str());
+
+                    switch (tape_reader.mode())
+                    {
                     case tape_reader_t::eTapeMode::kForwardErase:
-                        ImGui::Text( "FORWARD ERASE" );
+                        ImGui::Text("FORWARD ERASE");
                         break;
                     case tape_reader_t::eTapeMode::kForward:
                         ImGui::Text("FORWARD");
@@ -551,32 +550,29 @@ void render_internals( emulator_t &emu )
                         ImGui::Text("REWIND");
                         break;
                         ;
+                    }
+                    if (ImGui::Button(std::format("Eject##{}", i).c_str()))
+                    {
+                        // tape.eject();
+                    }
+                    ImGui::SameLine();
+                    if (ImGui::Button(std::format("Rewind##{}", i).c_str()))
+                    {
+                        // tape.load( ... );
+                    }
                 }
-                if (ImGui::Button(std::format("Eject##{}", i).c_str()))
+                else
                 {
-                    // tape.eject();
-                }
-                ImGui::SameLine();
-                if (ImGui::Button(std::format("Rewind##{}", i).c_str()))
-                {
-                    // tape.load( ... );
+                    ImGui::Text("Unloaded");
+                    if (ImGui::Button("Load"))
+                    {
+                        std::cout << "TODO LOAD TAPE" << std::endl;
+                    }
                 }
             }
-            else
-            {
-                ImGui::Text("Unloaded");
-                if (ImGui::Button("Load"))
-                {
-                    std::cout << "TODO LOAD TAPE" << std::endl;
-                }
-            }
-
             // ImGui::Text("  Position: %d", tape.position());
             // ImGui::Text("  Next byte: %s", to_octal(tape.next()).c_str());
-        }
-    }
-
-ImGui::End();
+        ImGui::End();
 }
 
 void render_emulator(emulator_t &emu)
