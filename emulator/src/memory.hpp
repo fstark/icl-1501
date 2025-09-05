@@ -42,6 +42,11 @@ public:
 		return was_changed;
 	}
 
+	uint8_t get(const addrs_t adrs) const
+	{
+		return (*this)[adrs];
+	}
+
 	uint8_t operator[](size_t index) const
 	{
 		assert(index < sizeof(data));
