@@ -52,7 +52,22 @@
 		"vector": "cpp",
 		"cstddef": "cpp",
 		"ranges": "cpp",
-		"ostream": "cpp"
+		"ostream": "cpp",
+		"functional": "cpp",
+		"chrono": "cpp",
+		"bit": "cpp",
+		"compare": "cpp",
+		"concepts": "cpp",
+		"iterator": "cpp",
+		"type_traits": "cpp",
+		"utility": "cpp",
+		"charconv": "cpp",
+		"exception": "cpp",
+		"format": "cpp",
+		"numbers": "cpp",
+		"system_error": "cpp",
+		"text_encoding": "cpp",
+		"tuple": "cpp"
 	},
 	"editor.formatOnSave": false
 }

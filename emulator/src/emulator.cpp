@@ -123,9 +123,9 @@ void test_cpu_t()
     std::cout << "CPU step executed." << std::endl;
 }
 
-emulator_t::emulator_t() : memory_(), io_(memory_), cpu_(memory_, io_)
+emulator_t::emulator_t() : memory_(), io_(memory_), cpu_(memory_, io_), breakpoints_(this)
 {
-    load_bootstrap(memory_);
+    // load_bootstrap(memory_);
     load_font(memory_);
     // io_.execute(iw_t{0174, 0b00001010}); // IOC C#4 020 ; Screen in P01-000, underline
     cpu_.execute(iw_t{0174, 0b01001000}); // IOC C#4 120 ; Screen in P10-000, underline

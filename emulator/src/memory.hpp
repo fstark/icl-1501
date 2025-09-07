@@ -9,6 +9,8 @@
 #include "addrs.hpp"
 #include "iw.hpp"
 
+#include "rom.hpp"
+
 // Forward declaration
 class binary_t;
 
@@ -19,8 +21,13 @@ class memory_t
 	std::array<bool,16384> monitored_;  //  If true, this address is monitored for changes (for CRT)
 	bool changed_ = true;  //  If true, a monitored address has changed since last checked
 
+	rom_t rom_;  //  The ROM is mapped at P01-000 to P01-017
+	bool rom_enabled_ = true; //  If true, ROM is enabled (otherwise RAM is at P01-000 to P01-017)
+
 public:
 	memory_t() { std::fill(std::begin(data), std::end(data), 0); }
+
+	void enable_rom(bool e) { rom_enabled_ = e; }
 
     void clear_crt_monitor()
 	{
@@ -50,6 +57,10 @@ public:
 	uint8_t operator[](size_t index) const
 	{
 		assert(index < sizeof(data));
+		if (rom_enabled_ && index>=256 && index<256+16)
+		{
+			return rom_.get( index-256 );
+		}
 		return data[index];
 	}
 
@@ -112,19 +123,6 @@ public:
 		{
 			set(adrs + i, bytes[i]);
 		}
-	}
-
-	void dump_adrs( addrs_t from, size_t size = 16) const
-	{
-		assert(from.linear() + size <= sizeof(data));
-		for (size_t i = 0; i < size; i+=2)
-		{
-			std::cout << (from+i).as_string() << ": ";
-			addrs_t a = get_addrs(from+i);	
-			std::cout << a.as_string() << " ";
-			std::cout << std::endl;
-		}
-		std::cout << std::dec << std::endl;
 	}
 
 	void dump( addrs_t from, size_t size = 16) const

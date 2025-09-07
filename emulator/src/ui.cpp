@@ -345,7 +345,6 @@ void render_screen(const crt_t::screen_buffer_t &screen)
 
 void render_breakpoints( emulator_t &emu )
 {
-    auto &cpu = emu.cpu();
     ImGui::Begin("Breakpoints");
     static int new_bp = 0;
     ImGui::InputInt("New Breakpoint", &new_bp);
@@ -397,6 +396,22 @@ void render_internals(emulator_t &emu)
     auto &cpu = emu.cpu();
 
     ImGui::Begin("Control Panel");
+
+    addrs_t break_addrs{0,0};
+    eBreakpointType break_type;
+
+    cpu.get_breakpoint(break_addrs, break_type);
+
+    if (break_type&READ)
+        ImGui::Text("STOPPED at %s by READ at %s",
+            cpu.iaw().as_string().c_str(),
+            break_addrs.as_string().c_str()
+        );
+    if (break_type&WRITE)
+        ImGui::Text("STOPPED on WRITE at %s", break_addrs.as_string().c_str());
+    if (break_type&EXECUTE)
+        ImGui::Text("STOPPED on EXECUTE at %s", break_addrs.as_string().c_str());
+
     if (ImGui::Button("Reset"))
     {
         cpu.reset();

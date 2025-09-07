@@ -11,13 +11,14 @@
 #include <bit>
 #include <bitset>
 #include <iomanip>
+#include <array>
 
 #include "addrs.hpp"
 #include "iw.hpp"
 #include "disassembler.hpp"
 #include "memory.hpp"
-
 #include "io.hpp"
+#include "breakpoint.hpp"
 
 // stack==P00-040
 
@@ -25,6 +26,7 @@
 // {
 //     uint64_t cycles;
 // };
+
 
 class cpu_t
 {
@@ -35,9 +37,84 @@ class cpu_t
 
     disassembler_t disassembler;
 
+    std::array<eBreakpointType, 16384> breakpoint_map_ = {NONE};
+    bool breakpoints_enabled = false;
+    std::array<eBreakpointType, 16384> breakpoint_map_save;
+
+
+    eBreakpointType breakpoint_type_ = NONE;
+    addrs_t breakpoint_addr_{0,0};
+
 public:
     memory_t &memory() { return memory_; }
     io_t &io() { return io_; }
+
+    class breakpoint_exception : public std::runtime_error
+    {
+        addrs_t addr_;
+        eBreakpointType type_;
+        public:
+        breakpoint_exception(const std::string &msg, const addrs_t &addr, eBreakpointType type)
+            : std::runtime_error(msg), addr_(addr), type_(type) {}
+        addrs_t addr() const { return addr_; }
+        eBreakpointType type() const { return type_; }
+    };
+
+    void set_breakpoints( const breakpoint_list_t &breakpoints )
+    {
+        breakpoint_map_.fill(NONE);
+        for (const auto &bp : breakpoints.breakpoints())
+        {
+            if (bp.enabled())
+            {
+                breakpoint_map_[bp.addr().linear()] = static_cast<eBreakpointType>(breakpoint_map_[bp.addr().linear()] | static_cast<eBreakpointType>(bp.mask()));
+            }
+        }
+        breakpoint_map_save = breakpoint_map_;
+        std::cout << breakpoint_map_[1] << std::endl;
+    }
+
+    void get_breakpoint(addrs_t &addr, eBreakpointType &type) const
+    {
+        addr = breakpoint_addr_;
+        type = breakpoint_type_;
+    }
+
+    // Memory access trampoline functions with breakpoint support
+    uint8_t read_byte(const addrs_t &addr) const
+    {
+        if (breakpoints_enabled && breakpoint_map_[addr.linear()] & READ)
+        {
+            throw breakpoint_exception("Breakpoint hit", addr, READ);
+        }
+        return memory_[addr];
+    }
+    void write_byte(const addrs_t &addr, uint8_t value)
+    {
+        if (breakpoints_enabled && breakpoint_map_[addr.linear()] & WRITE)
+        {
+            throw breakpoint_exception("Breakpoint hit", addr, WRITE);
+        }
+        memory_.set(addr, value);
+    }
+    iw_t read_instruction(const addrs_t &addr) const
+    {
+        if (breakpoints_enabled && breakpoint_map_[addr.linear()] & EXECUTE)
+        {
+            throw breakpoint_exception("Breakpoint hit", addr, EXECUTE);
+        }
+        return memory_.get_instruction(addr);
+    }
+    
+    addrs_t read_address(const addrs_t &addr) const { 
+        uint8_t high = read_byte(addr);
+        uint8_t low = read_byte(addrs_t(addr.high(), addr.low() + 1));
+        return addrs_t(high, low);
+    }
+    void write_address(const addrs_t &addr, const addrs_t &value) { 
+        write_byte(addr, value.high());
+        write_byte(addrs_t(addr.high(), addr.low() + 1), value.low());
+    }
 
     uint8_t sp() const { return sp_ & 0x1f; }
 
@@ -52,10 +129,10 @@ public:
     }
 
     //  Current instruction address
-    addrs_t iaw() const { return memory_.get_addrs(sp_addrs()); }
+    addrs_t iaw() const { return read_address(sp_addrs()); }
     void set_iaw(const addrs_t addrs)
     {
-        memory_.set_addrs(sp_addrs(), addrs);
+        write_address(sp_addrs(), addrs);
     }
 
     addrs_t index_register_addrs( int reg) const
@@ -66,13 +143,13 @@ public:
     uint8_t index_register(int reg) const
     {
         assert(reg >= 1 && reg <= 8);
-        return memory_[index_register_addrs(reg)];
+        return read_byte(index_register_addrs(reg));
     }
 
     void set_index_register(int reg, uint8_t b)
     {
         assert(reg >= 1 && reg <= 8);
-        memory_.set(index_register_addrs(reg),b);
+        write_byte(index_register_addrs(reg), b);
     }
 
     cpu_t(memory_t &mem, io_t &io_device) : memory_(mem), io_(io_device) {}
@@ -81,23 +158,62 @@ public:
     {
         std::cout << "CPU Reset" << std::endl;
         sp_ = 0;
+        memory_.enable_rom(true);
         set_iaw(addrs_t(1, 0));
         compare_ = kEqual;
     }
+
+    /*
+        This is a bit sophisticated due to breakpoints
+        We enable breakpoints only during step, so access to memory done outside
+        does not trigger exceptions.
+        When a breakpoint occurs, the instruction will not be executed.
+        This means that if we redid the instruction, we would hit the same breakpoint again.
+
+        To avoid this, if the previous step ended in a breakpoint, we clear it from the map before executing the instruction, avoiding this specific breakpoint.
+        There can still be other breakpoints on the same instruction, in which step will stop again, and at the next step, we will clear this breakpoint again.
+
+        After execution, if we have to hack the map and there was no exception, we restore the map, so those breakpoints will be active again.
+
+        [note there is a potential bug: we should also save the whole memory and restore it if we hit a breakpoint, because (among other problems) an instruction can contain two writes. Example instruction is STA I#1 P00, which will modify the memory cell and increment the index register (which is a memory cell too). The bug does not appear because non-indempotent memory modifications are performed last in the instruction execution, but this is fragile and should be fixed.]
+        */
 
     void step()
     {
         dump();
 
-        // Fetch the instruction at the current instruction address
-        addrs_t pc = iaw();
-        iw_t iw = memory_.get_instruction(pc);
-
-        if (!execute( iw ))
+        bool previously_had_breakpoint = (breakpoint_type_ != NONE);
+        if (previously_had_breakpoint)
         {
-            pc = pc.next_instruction();
-            set_iaw(pc);
+            // Clear the breakpoint temporarily
+            breakpoint_map_[breakpoint_addr_.linear()] = static_cast<eBreakpointType>(breakpoint_map_[breakpoint_addr_.linear()] & ~breakpoint_type_);
         }
+
+        breakpoints_enabled = true;
+        breakpoint_type_ = NONE;
+        try
+        {
+            // Fetch the instruction at the current instruction address
+            addrs_t pc = iaw();
+            iw_t iw = read_instruction(pc);
+
+            if (!execute( iw ))
+            {
+                pc = pc.next_instruction();
+                set_iaw(pc);
+            }
+
+            // Restore any cleared breakpoint
+            if (previously_had_breakpoint)
+                breakpoint_map_ = breakpoint_map_save;
+        }
+        catch (const breakpoint_exception &e)
+        {
+            std::cout << "Breakpoint hit at " << e.addr().as_string() << " [" << ( (e.type()&READ)?"R":"") << ( (e.type()&WRITE)?"W":"") << "]" << std::endl;
+            breakpoint_addr_ = e.addr();
+            breakpoint_type_ = e.type();
+        }
+        breakpoints_enabled = false;
     };
 
     void register_update(uint8_t reg, iw_t::eIndexingMode mode)
@@ -106,10 +222,10 @@ public:
         switch (mode)
         {
             case iw_t::kIncrement:
-                memory_.set(areg,memory_[areg]+1);
+                write_byte(areg, read_byte(areg) + 1);
                 break;
             case iw_t::kDecrement:
-                memory_.set(areg,memory_[areg]-1);
+                write_byte(areg, read_byte(areg) - 1);
                 break;
             case iw_t::kUnchanged:
                 // Do nothing
@@ -169,7 +285,7 @@ public:
             case iw_t::kSTA_Ind:
             {
                 addrs_t addr{ iw.page_number(), index_register(iw.indexing_register()) };
-                memory_.set(addr,io_.accumulator());
+                write_byte(addr, io_.accumulator());
                 register_update(iw.indexing_register(), iw.indexing_mode());
                 break;
             }
@@ -187,6 +303,8 @@ public:
                 }
                 break;
             }
+            //note : SBU and other stack operation must memory_.enable_rom(false);
+
             case iw_t::kUnknown:
                 throw std::runtime_error("Unknown instruction: " + iw.as_octal());
             default:
@@ -200,7 +318,7 @@ public:
     {
         std::cout << "CPU state:" << std::endl;
         auto pc = iaw();
-        auto iw = memory_.get_instruction(pc);
+        auto iw = read_instruction(pc);
 
         std::cout << "  " << pc.as_string() << ": ";
         std::cout << iw.as_octal() << "     ";
@@ -220,7 +338,7 @@ public:
         {
             if (i==sp())
                 std::cout << "*";
-            std::cout << memory_.get_addrs(sp_base(i)).as_string() << " ";
+            std::cout << read_address(sp_base(i)).as_string() << " ";
         }
         std::cout << std::endl;
 
