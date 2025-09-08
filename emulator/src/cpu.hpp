@@ -20,13 +20,6 @@
 #include "io.hpp"
 #include "breakpoint.hpp"
 
-// stack==P00-040
-
-// class clock_t
-// {
-//     uint64_t cycles;
-// };
-
 
 class cpu_t
 {

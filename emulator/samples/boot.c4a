@@ -8,7 +8,7 @@ BOOT=P00-030
 	LDX R#1 030			; We load at offset 030
 LOOP:
 	IOC C#0 007			; Read byte
-	STA I#1 P00			; Store it in 030...
+	STA I#1 P00			; Store it in P00-030...
 	CPX R#1 230			; Up to P00-230
 	BRL LOOP
 ;	IOC C#1 026			; Read status (stop reading) [for tape3 boot]

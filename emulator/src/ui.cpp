@@ -400,6 +400,8 @@ void render_internals(emulator_t &emu)
     addrs_t break_addrs{0,0};
     eBreakpointType break_type;
 
+    ImGui::Text("Clock: %s", emu.clock().to_string().c_str());
+
     cpu.get_breakpoint(break_addrs, break_type);
 
     if (break_type&READ)
@@ -419,7 +421,7 @@ void render_internals(emulator_t &emu)
     ImGui::SameLine();
     if (ImGui::Button("Step"))
     {
-        cpu.step();
+        emu.step();
     }
     ImGui::SameLine();
     if (ImGui::Button("Assembler"))
